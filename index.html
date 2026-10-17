@@ -1,8 +1,6 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0E4A4F">
-</head><body>
 <title>Sala de Medicação</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
@@ -28,7 +26,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 #app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:0 8px}
 @media (min-width:700px){#app{padding-block:16px;max-width:500px}}
-body.playing .brand b{display:none}
+body.playing .brand b,body.shift .brand b{display:none}
 body{margin:0}
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:8px;padding:8px 12px;margin-top:6px;background:var(--hud);color:#fff;border-radius:16px;box-shadow:0 4px 0 #082E31}
 .brand{display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;color:#fff}
@@ -93,6 +91,30 @@ body{margin:0}
 #gToast{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;z-index:4}
 .gt{background:rgba(15,50,56,.93);color:#fff;padding:7px 12px;border-radius:12px;font-weight:700;font-size:13.5px;line-height:1.3;text-align:center;animation:pop .3s cubic-bezier(.3,1.6,.6,1);transition:opacity .4s;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:100%}
 .gt.ok{background:rgba(30,154,85,.95)} .gt.warn{background:rgba(194,122,0,.96)} .gt.bad{background:rgba(217,64,58,.96)} .gt.out{opacity:0}
+.gt{display:flex;align-items:center;gap:8px;text-align:left}
+.gt .gi{flex:none;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:13px}
+.gstage::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:16px;opacity:0;z-index:3}
+.gstage.fl-bad::after{box-shadow:inset 0 0 0 6px var(--bad),inset 0 0 70px rgba(217,64,58,.55);animation:flash .65s ease-out}
+.gstage.fl-warn::after{box-shadow:inset 0 0 0 5px var(--amber),inset 0 0 50px rgba(232,150,42,.45);animation:flash .6s ease-out}
+.gstage.fl-ok::after{box-shadow:inset 0 0 0 5px var(--ok),inset 0 0 50px rgba(30,154,85,.35);animation:flash .6s ease-out}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+.pill.hit{animation:hit .6s ease-out}
+@keyframes hit{0%{background:var(--bad);transform:scale(1.18)}100%{background:rgba(255,255,255,.14);transform:none}}
+.prog{height:6px;border-radius:3px;background:var(--surface-2);margin-top:7px;overflow:hidden;box-shadow:inset 0 1px 0 var(--line)}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#3CC7AF);border-radius:3px;transition:width .45s cubic-bezier(.3,1.4,.6,1)}
+#hintBtn{color:var(--warn)}
+.obj .phrow{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:24px}
+.obj .phrow .rbtn{padding:3px 9px}
+.obj{min-height:104px}
+.ib{display:grid;place-items:center;width:34px;height:32px;padding:0!important}
+.ib svg{width:20px;height:20px}
+@media (max-width:420px){.brand b{font-size:15px}.top{gap:6px;padding:8px 10px}.top .ghost{padding:6px 8px}.pill{padding:2px 8px}}
+.how2{margin:4px 0 0;padding-left:22px;font-size:15px} .how2 li{margin:8px 0}
+.rec{display:inline-block;background:var(--star);color:#5A3B00;font-family:var(--f-display);font-weight:800;padding:2px 12px;border-radius:999px;animation:pop .45s cubic-bezier(.3,1.6,.6,1);box-shadow:0 3px 0 #D49A10}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--muted);font-weight:700;font-size:14px;margin:0 0 12px}
+.mode .best{display:block;margin-top:3px;font-size:12.5px;font-weight:800;color:var(--accent-dark)}
+.mode .best .stars{font-size:14px;letter-spacing:1px}
+.linkbtn{background:none;border:0;color:var(--blue-dark);font-weight:800;text-decoration:underline;padding:10px 0;width:100%}
 
 /* roteiro (bottom sheet) */
 #sheet{position:fixed;inset:0;z-index:30;background:rgba(10,40,44,.45);display:flex;align-items:flex-end;justify-content:center}
@@ -143,6 +165,7 @@ body.playing #app{height:100dvh;min-height:0}
 body.playing #gamewrap{flex:1;min-height:0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+</head><body>
 
 <div id="app">
   <header class="top">
@@ -150,6 +173,7 @@ body.playing #gamewrap{flex:1;min-height:0}
     <span class="sp"></span>
     <span class="pill" id="casePill" hidden></span>
     <span class="pill" id="ptsPill"><span class="st">★</span><b id="pts">0</b></span>
+    <button class="ghost ib" id="sndBtn" aria-label="Desligar som" aria-pressed="true"></button>
     <button class="ghost" id="protoBtn">Tabela</button>
   </header>
   <main id="view"></main>
@@ -521,7 +545,36 @@ function drawFace(s,x,y,p,r=52){
 /* ---------- HUD em HTML sobre o canvas ---------- */
 let CUR=null;
 function hud(stage,obj){$('#gStage').textContent=stage;$('#gObj').innerHTML=obj;}
-function toast(msg,kind='info'){const d=document.createElement('div');d.className='gt '+kind;d.innerHTML=msg;$('#gToast').appendChild(d);setTimeout(()=>d.classList.add('out'),3600);setTimeout(()=>d.remove(),4100);}
+/* ---------- feedback: som (WebAudio, sem arquivos), vibração e flashes ---------- */
+const FX={on:true,last:{}};try{FX.on=localStorage.getItem('sm_som')!=='0';}catch(e){}
+let AC=null;
+const SFX={tap:[[660,.05,0,'triangle',.05]],step:[[880,.08,0,'sine',.09],[1320,.12,.06,'sine',.07]],ok:[[660,.1,0,'sine',.09],[990,.16,.08,'sine',.09]],
+  warn:[[392,.16,0,'triangle',.12],[370,.18,.1,'triangle',.08]],bad:[[196,.2,0,'sawtooth',.06],[147,.3,.12,'sawtooth',.06]],stamp:[[110,.12,0,'square',.07],[80,.1,.03,'sine',.12]],
+  win:[[523,.13,0,'sine',.1],[659,.13,.11,'sine',.1],[784,.13,.22,'sine',.1],[1047,.32,.33,'sine',.1]]};
+function sfx(k){if(!FX.on||!SFX[k])return;const now=performance.now();if(now-(FX.last[k]||0)<250)return;FX.last[k]=now;
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const t0=AC.currentTime+.01;
+    SFX[k].forEach(([f,d,at,type,vol])=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t0+at);
+      g.gain.setValueAtTime(0,t0+at);g.gain.linearRampToValueAtTime(vol,t0+at+.012);g.gain.exponentialRampToValueAtTime(.0001,t0+at+d);o.connect(g).connect(AC.destination);o.start(t0+at);o.stop(t0+at+d+.03);});}catch(e){}}
+function buzz(p){if(!FX.on)return;try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+function flash(kind){const st=document.querySelector('.gstage');if(!st)return;st.classList.remove('fl-ok','fl-warn','fl-bad');void st.offsetWidth;st.classList.add('fl-'+kind);}
+function shake(){try{const sc=GAME&&GAME.scene.getScenes(true).find(x=>x.scene.key!=='Boot');if(sc)sc.cameras.main.shake(220,.006);}catch(e){}}
+function fx(kind){if(kind==='warn'){sfx('warn');buzz(40);flash('warn');}else if(kind==='bad'){sfx('bad');buzz([70,50,70]);flash('bad');shake();}}
+function setSound(on){FX.on=on;try{localStorage.setItem('sm_som',on?'1':'0');}catch(e){}const b=$('#sndBtn');if(b){b.innerHTML=on?ICON_SND.on:ICON_SND.off;b.setAttribute('aria-label',on?'Desligar som':'Ligar som');b.setAttribute('aria-pressed',String(on));}if(on)sfx('ok');}
+const ICON_SND={on:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`,
+  off:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`};
+/* confirmação visual de passo concluído, no ponto em que o jogador tocou */
+function stepFX(s){const tr=LEVEL==='treino';sfx('step');buzz(12);
+  try{if(!s||!s.sys||!s.sys.isActive())return;const p=s.input.activePointer;if(!p||(!p.x&&!p.y))return;
+    const C=s.add.container(p.x,p.y).setScrollFactor(0).setDepth(900),g=s.add.graphics();C.add(g);
+    if(tr){g.fillStyle(0x1E9A55,1);g.fillCircle(0,0,28);g.lineStyle(7,0xffffff,1);g.beginPath();g.moveTo(-12,1);g.lineTo(-3,10);g.lineTo(13,-9);g.strokePath();}
+    else{g.lineStyle(6,0x2D7FD3,.9);g.strokeCircle(0,0,24);}
+    for(let i=0;i<8;i++){const a=i/8*Math.PI*2,d=s.add.circle(0,0,tr?6:4,tr?(i%2?0xFFC43D:0x12A58C):0x2D7FD3);C.add(d);s.tweens.add({targets:d,x:Math.cos(a)*64,y:Math.sin(a)*64,alpha:0,duration:520,ease:'Cubic.Out'});}
+    C.setScale(.3);s.tweens.add({targets:C,scale:1,duration:220,ease:'Back.Out'});s.tweens.add({targets:C,alpha:0,y:p.y-34,delay:420,duration:360,onComplete:()=>C.destroy()});}catch(e){}}
+function toast(msg,kind='info'){const box=$('#gToast');while(box.children.length>=2)box.firstChild.remove();
+  const d=document.createElement('div');d.className='gt '+kind;const ic={ok:'✓',warn:'!',bad:'✕'}[kind];
+  d.innerHTML=(ic?`<i class="gi" aria-hidden="true">${ic}</i>`:'')+`<span>${msg}</span>`;box.appendChild(d);
+  const ms=Math.min(7500,2400+String(msg).replace(/<[^>]+>/g,'').length*38);
+  setTimeout(()=>d.classList.add('out'),ms);setTimeout(()=>d.remove(),ms+450);fx(kind);}
 function note(R,kind,t,pts=0,key){
   R.keys=R.keys||{}; if(key){if(R.keys[key])return false;R.keys[key]=1;}
   R.notes.push({ok:kind,t,pts}); if(pts){R.ded+=pts;setScore(pts);}
@@ -530,6 +583,7 @@ function note(R,kind,t,pts=0,key){
 function caseScore(R){return Math.max(0,100+R.ded);}
 function setScore(delta){
   $('#pts').textContent=CUR?caseScore(CUR.R):S.score;
+  if(delta<0){const pl=$('#ptsPill');pl.classList.remove('hit');void pl.offsetWidth;pl.classList.add('hit');}
   if(delta){const f=document.createElement('span');f.className='fly'+(delta<0?' neg':'');f.textContent=(delta>0?'+':'')+delta;$('#ptsPill').appendChild(f);setTimeout(()=>f.remove(),1000);}
 }
 function modal(html,{wide=false}={}){const m=$('#modal');m.hidden=false;m.innerHTML=`<div class="mbox" style="${wide?'':'max-width:520px'}">${html}</div>`;return m;}
@@ -706,9 +760,10 @@ function imAnglePanel(s,needle,cb){
 
 /* ================= VERSÃO MOBILE (retrato) ================= */
 const GW=720, GH=1120, DRAWER_Y=900;
-let LEVEL='treino';
+let LEVEL='treino',HINT_UNTIL=0;
+const hlOn=()=>LEVEL==='treino'||performance.now()<HINT_UNTIL;
 const SOL_POOL=[['SF 0,9%',100],['SF 0,9%',250],['SF 0,9%',500],['SF 0,9%',1000],['SG 5%',500],['SG 5%',1000],['Ringer lactato',500],['Ringer lactato',1000]];
-const FASES={conf:'Conferência',prep:'Sala de preparo',soro:'Preparo do soro',puncao:'Punção venosa',inst:'Instalação',adm:'Administração',reg:'Registro'};
+const FASES={conf:'Higiene e luvas',prep:'Sala de preparo',soro:'Preparo do soro',puncao:'Punção venosa',inst:'Instalação',adm:'Administração',reg:'Registro'};
 /* braço na vertical */
 const CXA=300,KA=.98,Y0A=14;
 const AV=(x,y)=>({x:CXA+(y-155)*KA,y:Y0A+x*KA});
@@ -743,13 +798,15 @@ class Guide{
     if(LEVEL==='treino'&&this.idx(id)>this.idx(c.id)){toast(`Primeiro: ${c.t}.`,'warn');this.bump();return false;}return true;}
   complete(id){if(this.done.has(id))return;const c=this.cur();
     if(LEVEL!=='treino'&&c&&c.id!==id&&this.idx(id)>this.idx(c.id))note(CUR.R,'warn',`Fora de ordem: "${this.steps[this.idx(id)].t}" antes de "${c.t}".`,-2,'ord_'+id);
-    this.done.add(id);this.render(true);const n=this.cur();if(n&&LEVEL==='treino'&&n.view&&this.s.goView)this.s.goView(n.view);}
+    this.done.add(id);stepFX(this.s);this.render(true);const n=this.cur();if(n&&LEVEL==='treino'&&n.view&&this.s.goView)this.s.goView(n.view);}
   bump(){const c=$('#objCard');c.classList.remove('flash');void c.offsetWidth;c.classList.add('flash');}
-  render(flash){const c=this.cur(),card=$('#objCard'),N=this.steps.length,n=c?this.idx(c.id)+1:N;
+  hint(){const c=this.cur();if(!c||!CUR)return;note(CUR.R,'warn',`Pediu dica: "${c.t}".`,-2,'hint_'+c.id);HINT_UNTIL=performance.now()+6000;
+    if(c.view&&this.s.goView)this.s.goView(c.view);setTimeout(()=>toast(`<b>${c.t}.</b> ${c.how}`,'info'),60);}
+  render(flash){const c=this.cur(),card=$('#objCard'),N=this.steps.length,n=c?this.idx(c.id)+1:N,dn=this.done.size,bar=`<div class="prog" aria-hidden="true"><i style="width:${Math.round(dn/N*100)}%"></i></div>`;
     if(LEVEL==='prova')card.innerHTML=`<div class="num">?</div><div class="txt"><div class="ph">Modo prova</div><div class="tt">Sem roteiro</div><div class="how">Faça o procedimento completo, como no plantão.</div></div>`;
-    else if(LEVEL==='pratica')card.innerHTML=`<div class="num">${this.done.size}</div><div class="txt"><div class="ph">Fase atual · ${this.done.size} de ${N} passos</div><div class="tt">${c?FASES[c.f]:'Concluído'}</div><div class="how">Você sabe o que vem agora?</div></div>`;
-    else card.innerHTML=`<div class="num">${n}</div><div class="txt"><div class="ph">Passo ${n} de ${N} · ${c?FASES[c.f]:'fim'}</div><div class="tt">${c?c.t:'Tudo pronto'}</div><div class="how">${c?c.how:''}</div></div><button class="rbtn" id="rbtn">Roteiro</button>`;
-    const rb=$('#rbtn');if(rb)rb.onclick=()=>this.sheet();if(flash)this.bump();}
+    else if(LEVEL==='pratica')card.innerHTML=`<div class="num">${this.done.size}</div><div class="txt"><div class="phrow"><div class="ph">Fase atual · ${dn} de ${N} passos</div>${c?'<button class="rbtn" id="hintBtn">Dica −2</button>':''}</div><div class="tt">${c?FASES[c.f]:'Concluído'}</div><div class="how">Você sabe o que vem agora?</div>${bar}</div>`;
+    else card.innerHTML=`<div class="num">${n}</div><div class="txt"><div class="phrow"><div class="ph">Passo ${n} de ${N} · ${c?FASES[c.f]:'fim'}</div><button class="rbtn" id="rbtn">Roteiro</button></div><div class="tt">${c?c.t:'Tudo pronto'}</div><div class="how">${c?c.how:''}</div>${bar}</div>`;
+    const rb=$('#rbtn');if(rb)rb.onclick=()=>this.sheet();const hb=$('#hintBtn');if(hb)hb.onclick=()=>this.hint();if(flash)this.bump();}
   sheet(){const c=this.cur();let html='',last='';
     this.steps.forEach((x,i)=>{if(x.f!==last){html+=`<div class="fase">${FASES[x.f]}</div>`;last=x.f;}
       const st=this.done.has(x.id)?'done':c&&c.id===x.id?'now':'';html+=`<div class="stp ${st}"><i>${this.done.has(x.id)?'✓':i+1}</i><div>${x.t}${st==='now'?`<small>${x.how}</small>`:''}</div></div>`;});
@@ -785,7 +842,7 @@ class Check extends Phaser.Scene{
   constructor(){super('Check');}
   create(d){const s=this,c=this.c=d.c;this.R=d.R;this.done=false;
     const p=c.p,t=PELE[p.pele];
-    $('#objCard').innerHTML=`<div class="num">1</div><div class="txt"><div class="ph">Conferência</div><div class="tt">O paciente confere com a ficha?</div><div class="how"><b>Em cima, em verde:</b> o paciente no leito e a pulseira dele. <b>Embaixo, em laranja:</b> a ficha (prontuário). Compare rosto × foto, nome, nascimento e alergias.</div></div>`;
+    $('#objCard').innerHTML=`<div class="num">1</div><div class="txt"><div class="ph">Conferência</div><div class="tt">O paciente confere com a ficha?</div><div class="how">Compare <b>paciente e pulseira</b> (em cima) com <b>a ficha</b> (embaixo): rosto, nome, nascimento — e alergias × prescrição.</div></div>`;
     svgTex(this,'bedTop',ART.bedTop()).then(()=>{
       const PC='#0E4A4F',FC='#E8962A';
       /* ===== PAINEL 1: O PACIENTE (quem está no leito) ===== */
@@ -814,7 +871,7 @@ class Check extends Phaser.Scene{
       const cg=s.add.graphics();cg.fillStyle(0xFFFDF4,1);cg.fillRoundedRect(8,660,704,318,22);
       cg.fillStyle(0xE8962A,1);cg.fillRoundedRect(8,660,704,58,{tl:22,tr:22,bl:0,br:0});
       cg.lineStyle(6,0xE8962A,1);cg.strokeRoundedRect(8,660,704,318,22);
-      T(s,32,689,'2 · A FICHA (prontuário)',28,'#fff',{ox:0,display:true});T(s,690,689,'o que está registrado',20,'#FFF1DA',{ox:1,w:'700'});
+      T(s,32,689,'2 · A FICHA (prontuário)',28,'#fff',{ox:0,display:true});const alF=c.alergiaW;T(s,690,689,alF?'ALERGIA: '+alF.toUpperCase():'Nega alergias',19,alF?'#D9403A':'#1E9A55',{ox:1}).setBackgroundColor('#ffffff').setPadding(10,4,10,4);
       // foto 3x4 do cadastro
       cg.fillStyle(0xffffff,1);cg.fillRoundedRect(30,736,170,206,8);cg.lineStyle(2,0xC9D2D6,1);cg.strokeRoundedRect(30,736,170,206,8);
       cg.fillStyle(0xD3E1EA,1);cg.fillRect(42,748,146,156);
@@ -822,7 +879,7 @@ class Check extends Phaser.Scene{
       const msk=s.add.graphics().setVisible(false);msk.fillStyle(0xffffff);msk.fillRect(42,748,146,156);phf.setMask(msk.createGeometryMask());
       T(s,115,922,'FOTO DO CADASTRO',15,'#557178');
       const tx=224;
-      const fld=(y,lab,val,sz,col)=>{T(s,tx,y,lab,16,'#8A6A30',{ox:0});T(s,tx,y+26,val,sz,col,{ox:0,wrap:470,align:'left'});};
+      const fld=(y,lab,val,sz,col)=>{T(s,tx,y,lab,17,'#8A6A30',{ox:0});T(s,tx,y+26,val,sz,col,{ox:0,wrap:470,align:'left'});};
       fld(738,'NOME',p.n,25,'#0F3238');
       fld(796,'NASC.',`${p.nasc} · ${p.idade} anos`,24,'#0F3238');
       fld(854,'LEITO · MOTIVO',`Leito ${c.leito} · ${c.queixa}`,22,'#3B5A60');
@@ -833,16 +890,17 @@ class Check extends Phaser.Scene{
       this.btns=[b1,b2];
     });
   }
-  decide(ok){if(this.done)return;this.done=true;const c=this.c,R=this.R,s=this;
+  decide(ok){if(this.done)return;this.done=true;const c=this.c,R=this.R,s=this;sfx('stamp');buzz(25);
     const st=T(s,360,780,ok?'CONFERE':'NÃO CONFERE',64,ok?'#1E9A55':'#D9403A',{display:true}).setDepth(60).setAngle(-12).setScale(2.4).setAlpha(0);
     s.tweens.add({targets:st,scale:1,alpha:.9,duration:220,ease:'Back.Out'});
-    const motivo={nome:`O nome na pulseira ("${c.p.alt}") é diferente do prontuário ("${c.p.n}").`,nasc:`A data de nascimento da pulseira (${c.nascAlt}) não bate com o prontuário (${c.p.nasc}).`,foto:'A foto do prontuário não é do paciente que está no leito.',alergia:`O paciente é alérgico a ${c.alergiaW}, e a prescrição é de ${c.d?nm(c.d):''}.`}[c.issue];
+    const motivo={nome:`O nome na pulseira ("${c.p.alt}") é diferente do prontuário ("${c.p.n}").`,nasc:`A data de nascimento da pulseira (${c.nascAlt}) não bate com o prontuário (${c.p.nasc}).`,foto:'A foto do prontuário não é do paciente que está no leito.',alergia:`O paciente é alérgico a ${c.alergiaW}, e a prescrição é de ${c.d?nm(c.d):''}${c.key&&ALERG_POR[c.key]?` (${ALERG_POR[c.key]})`:''}.`}[c.issue];
+    if(!!c.issue!==ok)s.time.delayedCall(260,()=>{sfx(c.issue?'win':'ok');flash('ok');});
     s.time.delayedCall(900,()=>{
       if(c.issue&&!ok){R.notes.push({ok:true,t:'Correto: '+motivo+' Medicação suspensa, enfermeiro comunicado.',pts:0});endCase();}
-      else if(c.issue&&ok){R.notes.push({ok:false,t:'Erro grave: '+motivo+' Nunca prossiga com dados divergentes.',pts:-100});R.ded=-100;setScore(-100);
+      else if(c.issue&&ok){fx('bad');R.notes.push({ok:false,t:'Erro grave: '+motivo+' Nunca prossiga com dados divergentes.',pts:-100});R.ded=-100;setScore(-100);
         modal(`<h2 style="font-size:28px;color:var(--bad)">Paciente não confere</h2><p>${motivo}</p><p class="unit">Diante de qualquer divergência: não administre, comunique o enfermeiro e registre.</p><button class="primary big" id="gok">Ver resultado</button>`);$('#modal').dataset.lock='1';
         $('#gok').onclick=()=>{delete $('#modal').dataset.lock;closeM();endCase();};}
-      else{if(ok)note(R,true,'Identificação conferida: rosto, nome, nascimento e alergias.');else note(R,false,'Os dados conferiam. Suspender sem motivo atrasa o tratamento.',-20);
+      else{if(ok){note(R,true,'Identificação conferida: rosto, nome, nascimento e alergias.');if(c.alergiaW)note(R,true,`Alergia a ${c.alergiaW} registrada: não impede ${c.d?nm(c.d):'a soroterapia'}.`);}else note(R,false,'Os dados conferiam. Suspender sem motivo atrasa o tratamento.',-20);
         this.scene.start(c.tipo==='soro'?'PrepS':'PrepEV',{c,R});}
     });}
 }
@@ -876,7 +934,7 @@ class PrepS extends Phaser.Scene{
     if(this.tray.some(x=>x.kind===o.kind)){const old=this.tray.find(x=>x.kind===o.kind);this.toggle(old);}
     o.onTray=true;this.tray.push(o);this.layout();this.guide.complete(step);}
   layout(){this.tray.forEach((o,i)=>this.tweens.add({targets:o,x:240+i*240,y:860,duration:280,ease:'Back.Out'}));}
-  update(t){const g=this.hl;g.clear();if(LEVEL!=='treino'||!this.guide)return;const c=this.guide.cur();if(!c)return;const a=.4+.4*Math.sin(t/180);g.lineStyle(6,0xFFC43D,a);
+  update(t){const g=this.hl;g.clear();if(!hlOn()||!this.guide)return;const c=this.guide.cur();if(!c)return;const a=.4+.4*Math.sin(t/180);g.lineStyle(6,0xFFC43D,a);
     if(c.id==='sol')g.strokeRoundedRect(28,80,664,280,20);if(c.id==='eq')g.strokeRoundedRect(28,440,664,155,20);if(c.id==='levar')g.strokeRoundedRect(145,1015,430,95,20);}
   finish(){const c=this.c,R=this.R;const bag=this.tray.find(o=>o.kind==='bag'),eq=this.tray.find(o=>o.kind==='eq');
     if(bag&&bag.list[1].text===c.soro.sol&&bag.list[2].text===c.soro.vol+' ml')note(R,true,`Solução correta: ${c.soro.sol} ${c.soro.vol} ml.`);
@@ -907,6 +965,8 @@ const STEPS_SORO=[
 class BedS extends Phaser.Scene{
   constructor(k='BedS'){super(k);}
   create(d){
+    /* a cena é reaproveitada entre casos: zera tudo que sobrou do caso anterior */
+    Object.assign(this,{ready:false,gauge:null,gMark:null,gNum:null,_rlab:null,_clab:null,_slab:null,pontaZ:null,pontaT:null,garZone:null,mandImg:null,port:null,holding:false,rubbing:false,spikeDrag:undefined,dropT:0,bagImg:null});
     this.c=d.c;this.R=d.R;const c=this.c,p=c.p,t=PELE[p.pele];this.isEV=c.tipo==='ev_ser';
     this.st={given:false,flushed:false,gloved:false,gar:null,rub:null,stroke:null,cath:null,mandril:true,ext:false,tested:false,fixed:false,
       bag:{hung:false,eq:false,open:true,spiked:false,ch:0,front:0,air:false,primed:false,conn:false,rate:0,ok:false,spillT:0,micro:!!c.soro&&c.soro.eq==='micro'}};
@@ -1153,7 +1213,7 @@ class BedS extends Phaser.Scene{
       if(this.gauge){const pos=Math.min(1,B.rate/this.gMax);this.gMark.x=this.gx+pos*this.gw;this.gNum.setText(`${B.rate} ${B.micro?'microgotas':'gotas'}/min`);}
     }
     // destaques do treino
-    const h=this.hl,hu=this.hlUI;h.clear();hu.clear();if(LEVEL!=='treino'||!this.guide)return;const c=this.guide.cur();if(!c)return;
+    const h=this.hl,hu=this.hlUI;h.clear();hu.clear();if(!hlOn()||!this.guide)return;const c=this.guide.cur();if(!c)return;
     const a=.45+.4*Math.sin(time/170);h.lineStyle(7,0xFFC43D,a);hu.lineStyle(6,0xFFC43D,a);
     const ring=(x,y,r)=>h.strokeCircle(x,y,r+6*Math.sin(time/170));const ui=k=>{const d=this.drawer[k];if(d&&!d.C._dis&&this.sel!==k)hu.strokeRoundedRect(d.x-70,d.y-54,140,108,18);};
     const sx=1060,tip=B.spiked?330:430;
@@ -1295,32 +1355,32 @@ class PrepEV extends Phaser.Scene{
     this.shelfMed={};
     shuffle([c.key,...shuffle(POOL[M].filter(k=>k!==c.key)).slice(0,3)]).forEach((k,i)=>{const dd=D[k],x=100+i*173;
       const o=s.add.container(x,132,[s.add.image(0,0,dd.apres==='frasco'?'frasco':'ampola').setScale(1.05)]).setSize(130,150).setInteractive({useHandCursor:true});
-      T(s,x,226,`${nm(dd)}\n${dd.apres==='frasco'?dd.dose+' · pó':dd.dose}`,nm(dd).length>16?15:18,'#0F3238',{wrap:165});o.on('pointerup',()=>this.tapShelf({kind:'med',key:k}));this.shelfMed[k]=o;});
+      T(s,x,226,`${nm(dd)}\n${dd.apres==='frasco'?dd.dose+' · pó':dd.dose}`,nm(dd).length>16?18:21,'#0F3238',{wrap:165});o.on('pointerup',()=>this.tapShelf({kind:'med',key:k}));this.shelfMed[k]=o;});
     // diluentes / bolsas
-    const dl=(kind,x,tex,lab)=>{const o=s.add.container(x,334,[s.add.image(0,0,tex).setScale(.85)]).setSize(90,120).setInteractive({useHandCursor:true});T(s,x,410,lab,18,'#0F3238');o.on('pointerup',()=>this.tapShelf({kind}));return o;};
+    const dl=(kind,x,tex,lab)=>{const o=s.add.container(x,334,[s.add.image(0,0,tex).setScale(.85)]).setSize(90,120).setInteractive({useHandCursor:true});T(s,x,410,lab,21,'#0F3238');o.on('pointerup',()=>this.tapShelf({kind}));return o;};
     this.shelfABD=dl('abd',62,'abd','ABD\n10 ml');
     this.shelfBag={};
     if(this.bol){shuffle([['SF 0,9%',100],['SF 0,9%',250],['SG 5%',250]]).forEach(([sol,vol],i)=>{const x=155+i*88;
-        const o=s.add.container(x,326,[s.add.image(0,0,'bag').setScale(.5)]).setSize(80,110).setInteractive({useHandCursor:true});T(s,x,404,`${sol}\n${vol} ml`,15,'#0F3238');
+        const o=s.add.container(x,326,[s.add.image(0,0,'bag').setScale(.5)]).setSize(80,110).setInteractive({useHandCursor:true});T(s,x,404,`${sol}\n${vol} ml`,17,'#0F3238');
         o.on('pointerup',()=>this.tapShelf({kind:'bag',sol,vol}));this.shelfBag[sol+vol]=o;});}
     else this.shelfSF=dl('sf',165,'kit','SF 0,9%\n10 ml');
     // seringas
     this.shelfSyr={};const sxs=this.bol?[465,618]:[360,560],sk=this.bol?.55:.75;
     [3,5,10,20].forEach((cap,i)=>{const x=sxs[i%2],y=i<2?300:378;const g=s.add.graphics();drawSyr(g,cap,0,null,LIQ_DIL,sk);
-      const o=s.add.container(x,y,[g,T(s,0,30,`seringa ${cap} ml`,this.bol?15:17,'#0F3238')]).setSize(this.bol?140:180,72).setInteractive({useHandCursor:true});o.on('pointerup',()=>this.tapShelf({kind:'syr',cap}));this.shelfSyr[cap]=o;});
+      const o=s.add.container(x,y,[g,T(s,0,30,`seringa ${cap} ml`,this.bol?17:20,'#0F3238')]).setSize(this.bol?140:180,72).setInteractive({useHandCursor:true});o.on('pointerup',()=>this.tapShelf({kind:'syr',cap}));this.shelfSyr[cap]=o;});
     // agulhas e etiqueta
     this.shelfNd={};
     const nds=this.im?['40x12','30x7','25x7','30x8','13x4,5']:['40x12','25x7','13x4,5'];
-    nds.forEach((k,i)=>{const x=this.im?62+i*112:95+i*160;const o=s.add.container(x,474,[s.add.image(0,0,'nd_'+k).setScale(this.im?.78:1.05),T(s,0,32,(this.im?'':'agulha ')+k.replace('x',' × '),this.im?16:17,'#0F3238')]).setSize(this.im?108:150,66).setInteractive({useHandCursor:true});
+    nds.forEach((k,i)=>{const x=this.im?62+i*112:95+i*160;const o=s.add.container(x,474,[s.add.image(0,0,'nd_'+k).setScale(this.im?.78:1.05),T(s,0,32,(this.im?'':'agulha ')+k.replace('x',' × '),this.im?18:20,'#0F3238')]).setSize(this.im?108:150,66).setInteractive({useHandCursor:true});
       o.on('pointerup',()=>this.tapShelf({kind:'needle',key:k}));this.shelfNd[k]=o;});
     const eg=s.add.graphics();eg.fillStyle(0xffffff,1);eg.fillRoundedRect(-44,-22,88,40,6);eg.lineStyle(2,0x9FB1BB,1);eg.strokeRoundedRect(-44,-22,88,40,6);eg.fillStyle(0xE8962A,1);eg.fillRect(-44,-22,14,40);eg.fillStyle(0x9FB1BB,1);[-10,0,10].forEach(yy=>eg.fillRect(-24,yy-2,58,4));
-    this.etiq=s.add.container(this.im?648:605,466,[eg,T(s,0,40,'etiqueta',17,'#0F3238')]).setSize(this.im?96:130,80).setInteractive({useHandCursor:true});this.etiq.on('pointerup',()=>this.tapShelf({kind:'label'}));
+    this.etiq=s.add.container(this.im?648:605,466,[eg,T(s,0,40,'etiqueta',20,'#0F3238')]).setSize(this.im?96:130,80).setInteractive({useHandCursor:true});this.etiq.on('pointerup',()=>this.tapShelf({kind:'label'}));
     // bancada
-    this.sharps=s.add.container(632,690,[s.add.image(0,0,'sharps').setScale(.72),T(s,0,78,'coletor',17,'#3B5A60')]).setSize(120,150).setInteractive({useHandCursor:true});
+    this.sharps=s.add.container(632,690,[s.add.image(0,0,'sharps').setScale(.72),T(s,0,78,'coletor',20,'#3B5A60')]).setSize(120,150).setInteractive({useHandCursor:true});
     this.sharps.on('pointerup',()=>this.tapSharps());
     this.syrG=s.add.graphics();this.syrC=s.add.container(300,880,[this.syrG]).setSize(440,90).setInteractive({useHandCursor:true}).setVisible(false);
     this.syrC.on('pointerup',()=>{if(!this.syr)return;this.setSel(this.sel==='syr'?null:'syr');});
-    this.syrT=T(s,300,940,'',19,'#0F3238',{w:'700'});
+    this.syrT=T(s,300,940,'',22,'#0F3238',{w:'700'});
     this.selLabel=T(s,360,1002,'',22,'#0F3238').setBackgroundColor('#FFC43D').setPadding(14,4,14,4).setDepth(80).setVisible(false);
     this.piaBtn=button(s,180,1062,'Higienizar mãos',()=>this.wash(),{w:320,h:80,size:24,color:0x2D7FD3,dark:0x1F5EA3});
     this.goBtn=button(s,535,1062,'Levar ao leito ▶',()=>this.levar(),{w:330,h:80,size:26});
@@ -1353,7 +1413,7 @@ class PrepEV extends Phaser.Scene{
   slotPos(i){return {x:72+i*112,y:672};}
   addBench(it){const s=this;if(this.bench.length>=5){toast('A bancada está cheia.','warn');return null;}
     const i=this.bench.length,p=this.slotPos(i);
-    it.img=s.add.image(0,0,it.tex).setScale(.95);it.lab=T(s,0,84,it.label,16,'#0F3238');
+    it.img=s.add.image(0,0,it.tex).setScale(.95);it.lab=T(s,0,84,it.label,it.label.length>11?15:18,'#0F3238');
     it.C=s.add.container(p.x,p.y,[it.img,it.lab]).setSize(100,170).setInteractive({useHandCursor:true});it.C.on('pointerup',()=>this.tapBench(it));
     this.bench.push(it);return it;}
   layoutBench(){this.bench.forEach((b,i)=>{const p=this.slotPos(i);this.tweens.add({targets:b.C,x:p.x,y:p.y,duration:220});});}
@@ -1444,7 +1504,10 @@ class PrepEV extends Phaser.Scene{
       if(v<=0)return;b.ml=round1(b.ml-v);
       if(isDrug){if(y.drugKey&&y.drugKey!==b.key)y.mixed=true;y.drugKey=b.key;y.drug+=v;if(!b.fr&&b.ml<=.05)b.img.setTexture('ampolaV');}
       else if(b.kind==='abd')y.abd+=v;else y.sf+=v;
-      this.setSel(null);toast(`${fmt(round1(v))} ml aspirados.`,'ok');this.guide.complete(stepId);});}
+      this.setSel(null);
+      let falta=0;if(LEVEL==='treino'){falta=stepId==='aspabd'?this.rc-(y.abd+y.sf):stepId==='completar'?20-this.syrTotal():b.ml;}
+      if(falta>.05){toast(`${fmt(round1(v))} ml aspirados. Faltam ${fmt(round1(falta))} ml: ${b.ml<=.05?'abra outra ampola de ABD e aspire o resto':'toque na seringa e aspire de novo'}.`,'info');return;}
+      toast(`${fmt(round1(v))} ml aspirados.`,'ok');this.guide.complete(stepId);});}
   tapSharps(){const y=this.syr;
     if(this.sel!=='syr'){toast(this.bol?'Toque na seringa e depois no coletor para descartá-la.':'Toque na seringa e depois no coletor para descartar a agulha de aspiração.');return;}
     const dropAmp=()=>{this.bench=this.bench.filter(b=>{const out=b.open&&(b.kind!=='med'||!b.fr);if(out)b.C.destroy();return !out;});this.layoutBench();};
@@ -1456,7 +1519,7 @@ class PrepEV extends Phaser.Scene{
     if(!this.guide.can('descarte'))return;
     y.needle=null;y.discarded=true;dropAmp();
     this.setSel(null);toast(this.im?'Agulha de aspiração descartada. Agora encaixe a agulha de aplicação.':'Agulha de aspiração e ampolas abertas descartadas no coletor.','ok');this.guide.complete('descarte');}
-  update(t){const g=this.hl;g.clear();if(LEVEL!=='treino'||!this.guide)return;const cu=this.guide.cur();if(!cu)return;
+  update(t){const g=this.hl;g.clear();if(!hlOn()||!this.guide)return;const cu=this.guide.cur();if(!cu)return;
     const a=.45+.4*Math.sin(t/170);g.lineStyle(7,0xFFC43D,a);
     const box=(o,w,h)=>{if(o)g.strokeRoundedRect(o.x-w/2,o.y-h/2,w,h,16);};
     const bc=b=>b&&box(b.C,b.kind==='bag'?120:108,b.kind==='bag'?150:180),syrBox=()=>g.strokeRoundedRect(70,830,460,100,18);
@@ -1576,7 +1639,7 @@ function imAnglePanelP(s,{needle,p},cb){
 }
 class BedIM extends Phaser.Scene{
   constructor(){super('BedIM');}
-  create(d){const s=this,c=this.c=d.c;this.R=d.R;const p=c.p;
+  create(d){const s=this,c=this.c=d.c;this.R=d.R;const p=c.p;this.used=null;
     this.st={gloved:false,site:null,rub:false,given:false,comp:false,disc:false};this.sel=null;
     const bg=s.add.graphics();bg.fillStyle(0xDDEBEF,1);bg.fillRect(0,0,GW,DRAWER_Y);bg.fillStyle(0xF4F8FB,1);bg.fillRoundedRect(150,40,420,850,40);
     const body=s.add.graphics();drawBody(body,p);
@@ -1589,7 +1652,7 @@ class BedIM extends Phaser.Scene{
     this.spots={};
     Object.entries(SITES).forEach(([k,v])=>{const g=s.add.graphics().setDepth(9);g.fillStyle(0x2D7FD3,.35);g.fillCircle(v.x,v.y,20);g.lineStyle(4,0x2D7FD3,1);g.strokeCircle(v.x,v.y,20);
       const z=s.add.zone(v.x,v.y,64,64).setInteractive({useHandCursor:true}).setDepth(12);z.on('pointerup',()=>this.tapSite(k));this.spots[k]=g;
-      if(LEVEL==='treino'){T(s,v.lx,v.ly,v.n.replace(' da coxa',''),18,'#0F3238',{ox:0}).setBackgroundColor('#ffffffcc').setPadding(6,2,6,2).setDepth(10);}});
+      if(LEVEL==='treino'){T(s,v.lx,v.ly,v.n.replace(' da coxa',''),21,'#0F3238',{ox:0}).setBackgroundColor('#ffffffcc').setPadding(6,2,6,2).setDepth(10);}});
     this.sharps=s.add.container(640,800,[s.add.image(0,0,'sharps').setScale(.62),T(s,0,-70,'coletor',20,'#3B5A60')]).setSize(110,140).setInteractive({useHandCursor:true}).setDepth(6);
     this.sharps.on('pointerup',()=>this.tapSharps());
     const cs=c.syr;
@@ -1636,7 +1699,7 @@ class BedIM extends Phaser.Scene{
       st.comp=true;this.setSel(null);toast(c.key==='benzetacil'?'Compressão feita, sem massagear: a penicilina benzatina deve ficar no músculo.':'Compressão leve com algodão seco, sem massagear.','ok');this.guide.complete('compressao');}}
   tapSharps(){const st=this.st;if(this.sel!=='usado'){toast(st.given?'Toque na seringa usada e depois aqui.':'O coletor é para a seringa depois da aplicação.');return;}
     if(!this.guide.can('descarte'))return;st.disc=true;this.used.destroy();this.setSel(null);toast('Seringa e agulha descartadas no coletor, sem reencapar.','ok');this.guide.complete('descarte');}
-  update(time){const h=this.hl,hu=this.hlUI;if(!h)return;h.clear();hu.clear();if(LEVEL!=='treino'||!this.guide)return;const cu=this.guide.cur();if(!cu)return;const st=this.st;
+  update(time){const h=this.hl,hu=this.hlUI;if(!h)return;h.clear();hu.clear();if(!hlOn()||!this.guide)return;const cu=this.guide.cur();if(!cu)return;const st=this.st;
     const a=.45+.4*Math.sin(time/170);h.lineStyle(7,0xFFC43D,a);hu.lineStyle(6,0xFFC43D,a);
     const ring=(x,y,r)=>h.strokeCircle(x,y,r+6*Math.sin(time/170));const ui=k=>{const d=this.drawer[k];if(d&&!d.C._dis&&this.sel!==k)hu.strokeRoundedRect(d.x-70,d.y-54,140,108,18);};
     const site=()=>st.site&&ring(SITES[st.site].x,SITES[st.site].y,40);
@@ -1683,7 +1746,6 @@ function puncturePanelP(s,gauge,cb){
     s.time.delayedCall(1200,()=>{C.destroy();cb({ok,why,ang,up});});}
 }
 
-const _toast0=toast;toast=function(msg,kind){const box=$('#gToast');while(box.children.length>=2)box.firstChild.remove();_toast0(msg,kind);};
 
 /* ================= APP mobile: início, fluxo de casos, resultados ================= */
 let GAME=null,READY=null,BOOT=null;
@@ -1693,7 +1755,7 @@ function ensureGame(){if(READY)return READY;
     await new Promise(res=>{BOOT=res;GAME=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:GW,height:GH,backgroundColor:'#CDEAE5',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},input:{activePointers:2},scene:[Boot,Check,PrepS,BedS,PrepEV,BedEV,BedIM]});});
     try{new ResizeObserver(()=>{if(GAME)GAME.scale.refresh();}).observe(document.querySelector('.gstage'));}catch(e){}})();
   return READY;}
-function endCase(){closeM();$('#sheet').hidden=true;if(CUR&&CUR.done){const d=CUR.done;CUR.done=null;d(CUR.R);}}
+function endCase(){closeM();$('#sheet').hidden=true;if(CUR&&CUR.done){CUR.R.t1=Date.now();const d=CUR.done;CUR.done=null;d(CUR.R);}}
 function openProto(){if(CUR&&CUR.done&&!(CUR.R.keys&&CUR.R.keys.proto)){
     modal(`<h2 style="font-size:26px">Consultar a tabela?</h2><p>Durante um caso, consultar a tabela desconta 5 pontos (uma vez por caso).</p><div class="row"><button class="primary" id="mok">Consultar (−5)</button><button class="ghost" id="mno">Voltar</button></div>`);
     $('#mok').onclick=()=>{note(CUR.R,'warn','Consultou a tabela de preparo durante o caso.',-5,'proto');showProto();};$('#mno').onclick=closeM;return;}showProto();}
@@ -1701,6 +1763,7 @@ function showProto(){modal(`<div class="mhead"><h2>Preparo de medicação</h2><b
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!$('#modal').dataset.lock)closeM();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').dataset.lock){closeM();$('#sheet').hidden=true;}});
 $('#protoBtn').onclick=openProto;
+$('#sndBtn').onclick=()=>setSound(!FX.on);$('#sndBtn').innerHTML=FX.on?ICON_SND.on:ICON_SND.off;$('#sndBtn').setAttribute('aria-pressed',String(FX.on));
 
 function setupIssue(c){
   c.issue=null;c.alergiaW=null;c.photo={...c.p};c.nascAlt=null;
@@ -1709,54 +1772,79 @@ function setupIssue(c){
   if(r<.04)c.issue='nome';else if(r<.08){c.issue='nasc';const [d,m,y]=c.p.nasc.split('/');c.nascAlt=`${d}/${m}/${+y+(Math.random()<.5?1:-2)}`;}
   else if(r<.12){c.issue='foto';const ph={...c.p};if(Math.random()<.5)ph.pele=(c.p.pele+2)%4;else{ph.cab=(c.p.cab+3)%7;ph.oculos=!c.p.oculos;ph.barba=!c.p.fem&&!c.p.barba;ph.cabLongo=c.p.fem?!c.p.cabLongo:false;}c.photo=ph;}
   else if(r<.15&&c.d){c.issue='alergia';c.alergiaW=c.d.alergia||c.d.nome;}
+  /* ~30% dos pacientes têm uma alergia que NÃO conflita com o prescrito: é preciso ler, não só ver a cor */
+  if(!c.issue&&Math.random()<.3)c.alergiaW=pick(ALERG_OK);
   return c;}
+const ALERG_OK=['Sulfa','Iodo','Frutos do mar','Picada de abelha','Poeira e ácaros'];
+const ALERG_POR={escopolamina:'a associação contém dipirona',amoxclav:'a amoxicilina é uma penicilina',benzetacil:'é uma penicilina'};
 async function playCase(c){
   document.body.classList.add('playing');$('#view').hidden=true;$('#gamewrap').hidden=false;
-  const R={c,notes:[],ded:0};CUR={c,R,done:null};setScore();rxStrip(c);
+  const R={c,notes:[],ded:0,t0:Date.now()};CUR={c,R,done:null};setScore();rxStrip(c);
   await ensureGame();await new Promise(r=>requestAnimationFrame(r));GAME.scale.refresh();
   return new Promise(res=>{CUR.done=res;['Check','PrepS','BedS','PrepEV','BedEV','BedIM'].forEach(k=>{if(GAME.scene.isActive(k))GAME.scene.stop(k);});GAME.scene.start('Check',{c,R});});}
 const starsN=p=>p>=90?3:p>=70?2:p>40?1:0;
 const starsH=n=>`<span class="stars">${[0,1,2].map(i=>`<span class="${i<n?'on':'off'}">★</span>`).join('')}</span>`;
-const TIPO_TXT={ev_ser:'EV em seringa',ev_bol:'EV em bolsa',soro:'Soroterapia',im:'Intramuscular'};
+const TIPO_TXT={ev_ser:'EV em seringa',ev_bol:'EV em bolsa',soro:'Soroterapia',im:'Intramuscular',misto:'Plantão misto'};
+const LV_TXT={treino:'Treino',pratica:'Prática',prova:'Prova'};
+const BEST={};try{Object.assign(BEST,JSON.parse(localStorage.getItem('sm_best')||'{}'));}catch(e){}
+function saveBest(k,v){const prev=BEST[k];if(prev!=null&&v<=prev)return {rec:false,prev};BEST[k]=v;try{localStorage.setItem('sm_best',JSON.stringify(BEST));}catch(e){}return {rec:true,prev};}
+const durTxt=R=>{const s=Math.round(((R.t1||Date.now())-R.t0)/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
 function showView(html){document.body.classList.remove('playing');if(GAME)['Check','PrepS','BedS','PrepEV','BedEV','BedIM'].forEach(k=>{if(GAME.scene.isActive(k))GAME.scene.stop(k);});$('#gamewrap').hidden=true;$('#view').hidden=false;$('#view').innerHTML=html;window.scrollTo({top:0});}
 async function startMode(mode){const token=++S.run;S.mode=mode;S.results=[];
-  S.cases=[mode,mode,mode].map(t=>setupIssue(makeCase(t)));
-  for(let i=0;i<S.cases.length;i++){S.i=i;$('#casePill').hidden=false;$('#casePill').textContent=`${i+1}/${S.cases.length}`;
+  S.cases=(mode==='misto'?shuffle(['soro','ev_ser','ev_bol','im']).slice(0,3):[mode,mode,mode]).map(t=>setupIssue(makeCase(t)));
+  for(let i=0;i<S.cases.length;i++){S.i=i;$('#casePill').hidden=false;document.body.classList.add('shift');$('#casePill').textContent=`${i+1}/${S.cases.length}`;
     const R=await playCase(S.cases[i]);if(token!==S.run)return;S.results.push(R);await caseSummary(R,i===S.cases.length-1);if(token!==S.run)return;}
   finalSummary();}
 function caseSummary(R,last){return new Promise(res=>{const c=R.c,p=caseScore(R),bad=R.notes.filter(n=>n.ok!==true),good=R.notes.filter(n=>n.ok===true);CUR=null;
-  showView(`<div class="sum"><p class="eyebrow">Caso ${S.i+1} · ${TIPO_TXT[c.tipo]} · ${c.p.n}</p><div class="bigstars">${starsH(starsN(p))}</div><h2 style="font-size:40px;margin:4px 0 12px">${p} pontos</h2>
+  const nb=bad.filter(n=>n.ok===false).length,nw=bad.length-nb;
+  showView(`<div class="sum"><p class="eyebrow">Caso ${S.i+1} de ${S.cases.length} · ${TIPO_TXT[c.tipo]} · ${c.p.n}</p><div class="bigstars">${starsH(starsN(p))}</div><h2 style="font-size:40px;margin:4px 0 6px">${p} pontos</h2>
+    <div class="meta"><span>⏱ ${durTxt(R)}</span><span style="color:var(--ok)">✓ ${good.length} acerto${good.length===1?'':'s'}</span>${nw?`<span style="color:var(--warn)">! ${nw} atenç${nw===1?'ão':'ões'}</span>`:''}${nb?`<span style="color:var(--bad)">✕ ${nb} erro${nb===1?'':'s'}</span>`:''}</div>
     ${bad.length?`<h3 style="font-size:20px">Para revisar</h3><ul class="rev">${bad.map(n=>`<li class="${n.ok==='warn'?'warn':'bad'}">${n.t}${n.pts?` <b style="color:var(--muted)">(${n.pts})</b>`:''}</li>`).join('')}</ul>`:'<p style="color:var(--ok);font-weight:800">Procedimento sem erros.</p>'}
     ${good.length?`<h3 style="font-size:20px;margin-top:14px">Acertos</h3><ul class="rev">${good.map(n=>`<li class="ok">${n.t}</li>`).join('')}</ul>`:''}
-    <button class="primary big" id="nx">${last?'Ver resultado':'Próximo caso'}</button></div>`);$('#nx').onclick=res;});}
-function finalSummary(){const pct=Math.round(S.results.reduce((a,r)=>a+caseScore(r),0)/S.results.length);$('#casePill').hidden=true;$('#pts').textContent=pct;
+    <button class="primary big" id="nx">${last?'Ver resultado':'Próximo caso'}</button></div>`);if(p>=90)sfx('win');$('#nx').onclick=res;});}
+function finalSummary(){const pct=Math.round(S.results.reduce((a,r)=>a+caseScore(r),0)/S.results.length);$('#casePill').hidden=true;document.body.classList.remove('shift');$('#pts').textContent=pct;
   const rev=[...new Set(S.results.flatMap(r=>r.notes.filter(n=>n.ok===false).map(n=>n.t)))];
-  showView(`<div class="sum"><p class="eyebrow">Resultado · ${{treino:'Treino',pratica:'Prática',prova:'Prova'}[LEVEL]}</p><div class="bigstars">${starsH(starsN(pct))}</div><div class="score-big">${pct}</div>
+  const key=S.mode+'_'+LEVEL,bst=saveBest(key,pct),tot=S.results.reduce((a,r)=>a+((r.t1||r.t0)-r.t0),0)/1000;
+  const recTxt=bst.rec?(bst.prev==null?'<span class="rec">Primeiro recorde!</span>':`<span class="rec">Novo recorde! Antes: ${bst.prev}</span>`):`<span class="unit">Seu recorde: ${BEST[key]}</span>`;
+  showView(`<div class="sum"><p class="eyebrow">Resultado · ${TIPO_TXT[S.mode]} · ${LV_TXT[LEVEL]}</p><div class="bigstars">${starsH(starsN(pct))}</div><div class="score-big">${pct}</div>
+    <div style="margin:6px 0 4px">${recTxt}</div>
     <h2 style="font-size:24px;margin:6px 0">${pct>=90?'Pronto para o plantão':pct>=70?'Bom desempenho: revise os pontos abaixo':'Revise e tente de novo'}</h2>
-    <table>${S.results.map((r,i)=>`<tr><td>Caso ${i+1}: ${r.c.p.n}</td><td class="n">${caseScore(r)}</td></tr>`).join('')}</table>
+    <div class="meta"><span>⏱ plantão em ${Math.floor(tot/60)}:${String(Math.round(tot%60)).padStart(2,'0')}</span>${LEVEL!=='prova'&&pct>=90?`<span style="color:var(--accent-dark)">Próximo desafio: nível ${LEVEL==='treino'?'Prática':'Prova'}</span>`:''}</div>
+    <table>${S.results.map((r,i)=>`<tr><td>Caso ${i+1}: ${r.c.p.n}<br><small class="unit">${TIPO_TXT[r.c.tipo]}${r.c.d?' · '+nm(r.c.d):''}</small></td><td class="n">${starsH(starsN(caseScore(r)))}<br>${caseScore(r)}</td></tr>`).join('')}</table>
     ${rev.length?`<h3 style="margin-top:14px;font-size:20px">Erros para estudar</h3><ul class="rev">${rev.map(t=>`<li class="bad">${t}</li>`).join('')}</ul>`:''}
-    <button class="primary big" id="again">Jogar de novo</button><button class="ghost" id="hm" style="margin-top:12px;width:100%">Voltar ao início</button></div>`);
-  $('#again').onclick=()=>startMode(S.mode);$('#hm').onclick=home;}
+    <button class="primary big" id="again">Jogar de novo</button>${LEVEL!=='prova'&&pct>=90?`<button class="ghost" id="up" style="margin-top:12px;width:100%">Subir para ${LEVEL==='treino'?'Prática':'Prova'}</button>`:''}<button class="ghost" id="hm" style="margin-top:12px;width:100%">Voltar ao início</button></div>`);
+  sfx(pct>=70||bst.rec?'win':'ok');
+  $('#again').onclick=()=>startMode(S.mode);$('#hm').onclick=home;const up=$('#up');if(up)up.onclick=()=>{LEVEL=LEVEL==='treino'?'pratica':'prova';startMode(S.mode);};}
 const ICON={soro:`<svg viewBox="0 0 52 52"><rect x="12" y="4" width="28" height="30" rx="8" fill="#EAF5FB" stroke="#8FB0C2" stroke-width="2"/><rect x="15" y="14" width="22" height="17" rx="5" fill="#9CC4EC"/><rect x="23" y="34" width="6" height="6" fill="#B7C4CC"/><circle cx="26" cy="45" r="4" fill="#2D7FD3"/></svg>`,
   ev:`<svg viewBox="0 0 52 52"><rect x="4" y="18" width="44" height="18" rx="9" fill="#EDB792"/><path d="M28,24 L36,25 L36,29 L28,30 Z" fill="#E58BA7"/><rect x="36" y="25" width="8" height="4" fill="#fff"/></svg>`,
+  misto:`<svg viewBox="0 0 52 52"><rect x="6" y="6" width="18" height="22" rx="5" fill="#EAF5FB" stroke="#8FB0C2" stroke-width="2"/><rect x="9" y="14" width="12" height="11" rx="3" fill="#9CC4EC"/><g transform="rotate(-45 34 34)"><rect x="24" y="30" width="20" height="9" rx="2" fill="#EAF5FB" stroke="#8FB0C2" stroke-width="2"/><rect x="26" y="32" width="10" height="5" fill="#F0A848"/><line x1="16" y1="34.5" x2="24" y2="34.5" stroke="#8E9CA6" stroke-width="2.5"/></g><circle cx="40" cy="12" r="7" fill="#FFC43D"/><path d="M37 12h6M40 9v6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>`,
   im:`<svg viewBox="0 0 52 52"><g transform="rotate(-45 26 26)"><rect x="12" y="20" width="26" height="12" rx="3" fill="#EAF5FB" stroke="#8FB0C2" stroke-width="2"/><rect x="14" y="22" width="14" height="8" fill="#F0A848"/><rect x="38" y="23" width="8" height="6" fill="#B7C4CC"/><line x1="2" y1="26" x2="12" y2="26" stroke="#8E9CA6" stroke-width="2.5"/></g></svg>`};
-function home(){S.run++;CUR=null;$('#casePill').hidden=true;$('#pts').textContent='0';
+const MODES=[['soro','soro','Soroterapia','Conferência, equipo sem ar, punção e gotejamento.'],['ev_ser','ev','EV em seringa','Diluição na sala de preparo, punção e injeção lenta.'],
+  ['ev_bol','soro','EV em bolsa','Medicação diluída em soro, com gotejamento.'],['im','im','Intramuscular','Reconstituição, troca de agulha, local, ângulo e injeção lenta.'],
+  ['misto','misto','Plantão misto','3 procedimentos diferentes sorteados, como num plantão de verdade.']];
+const bestTxt=m=>{const v=BEST[m+'_'+LEVEL];return v==null?`<span class="best" style="color:var(--muted)">Ainda não jogado no ${LV_TXT[LEVEL]}</span>`:`<span class="best">Recorde no ${LV_TXT[LEVEL]}: ${starsH(starsN(v))} ${v}</span>`;};
+function howTo(then){modal(`<div class="mhead"><h2>Como jogar</h2>${then?'':'<button class="ghost" id="mx">Fechar</button>'}</div>
+  <ol class="how2"><li><b>Toque para pegar, toque para usar.</b> Pegue o material na gaveta do rodapé e toque no lugar onde vai usá-lo. Toque de novo no material para soltar.</li>
+  <li><b>Círculos azuis se arrastam.</b> Nos minijogos (aspirar, puncionar, injetar), arraste devagar e observe o paciente.</li>
+  <li><b>A prescrição fica no topo.</b> Toque nela para ver completa. Consultar a tabela de preparo durante o caso custa 5 pontos.</li>
+  <li><b>Cada caso vale 100 pontos.</b> Erros descontam na hora: a tela pisca e o resumo explica cada um.</li>
+  <li><b>Níveis:</b> o Treino mostra cada passo; a Prática mostra só a fase (dica custa 2 pontos); a Prova não ajuda.</li></ol>
+  <button class="primary big" id="hok">${then?'Começar plantão':'Entendi'}</button>`);
+  const fin=go=>{closeM();try{localStorage.setItem('sm_tut','1');}catch(e){}if(go&&then)then();};$('#hok').onclick=()=>fin(true);const mx=$('#mx');if(mx)mx.onclick=()=>fin(false);}
+function home(){S.run++;CUR=null;$('#casePill').hidden=true;document.body.classList.remove('shift');$('#pts').textContent='0';
   showView(`<section class="hero"><p class="eyebrow">Simulador · técnico de enfermagem</p><h1>Prepare, puncione, <span>administre.</span></h1>
     <p>Confira o paciente, prepare a medicação, puncione a veia e administre. Feito para jogar no celular.</p></section>
     <p class="sec-l">Escolha o nível</p>
     <div class="levels">${[['treino','Treino','Passo a passo com destaques'],['pratica','Prática','Só a fase atual'],['prova','Prova','Sem roteiro']].map(([k,t,d])=>`<button class="lvl ${LEVEL===k?'on':''}" data-l="${k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
     <p class="sec-l">Escolha o procedimento</p>
-    <div class="modes">
-     <button class="mode ${MODE==='soro'?'on':''}" data-m="soro"><span class="ic">${ICON.soro}</span><div><span class="tag">3 casos</span><h3>Soroterapia</h3><small>Conferência, equipo sem ar, punção e gotejamento.</small></div></button>
-     <button class="mode ${MODE==='ev_ser'?'on':''}" data-m="ev_ser"><span class="ic">${ICON.ev}</span><div><span class="tag">3 casos · novo</span><h3>EV em seringa</h3><small>Diluição na sala de preparo, punção e injeção lenta.</small></div></button>
-     <button class="mode ${MODE==='ev_bol'?'on':''}" data-m="ev_bol"><span class="ic">${ICON.soro}</span><div><span class="tag">3 casos · novo</span><h3>EV em bolsa</h3><small>Medicação diluída em soro, com gotejamento.</small></div></button>
-     <button class="mode ${MODE==='im'?'on':''}" data-m="im"><span class="ic">${ICON.im}</span><div><span class="tag">3 casos · novo</span><h3>Intramuscular</h3><small>Reconstituição, troca de agulha, local, ângulo e injeção lenta.</small></div></button>
-    </div>
+    <div class="modes">${MODES.map(([k,ic,t,d])=>`<button class="mode ${MODE===k?'on':''}" data-m="${k}"><span class="ic">${ICON[ic]}</span><div><span class="tag">3 casos${k==='misto'?' · novo':''}</span><h3>${t}</h3><small>${d}</small><span class="bw" data-b="${k}">${bestTxt(k)}</span></div></button>`).join('')}</div>
     <button class="primary big" id="start">Começar plantão</button>
+    <button class="linkbtn" id="howBtn">Como jogar</button>
     <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem.</p>`);
-  document.querySelectorAll('.lvl').forEach(b=>b.onclick=()=>{LEVEL=b.dataset.l;document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b));});
-  document.querySelectorAll('.mode[data-m]').forEach(b=>b.onclick=()=>{MODE=b.dataset.m;document.querySelectorAll('.mode[data-m]').forEach(x=>x.classList.toggle('on',x===b));});
-  $('#start').onclick=()=>startMode(MODE);}
+  document.querySelectorAll('.lvl').forEach(b=>b.onclick=()=>{LEVEL=b.dataset.l;sfx('tap');document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.bw').forEach(x=>x.innerHTML=bestTxt(x.dataset.b));});
+  document.querySelectorAll('.mode[data-m]').forEach(b=>b.onclick=()=>{MODE=b.dataset.m;sfx('tap');document.querySelectorAll('.mode[data-m]').forEach(x=>x.classList.toggle('on',x===b));});
+  $('#howBtn').onclick=()=>howTo(null);
+  $('#start').onclick=()=>{let seen=false;try{seen=localStorage.getItem('sm_tut')==='1';}catch(e){}if(seen)startMode(MODE);else howTo(()=>startMode(MODE));};}
 let MODE='soro';
 $('#homeBtn').onclick=home;
 home();
