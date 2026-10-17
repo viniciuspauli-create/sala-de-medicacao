@@ -534,6 +534,39 @@ function sfx(k){if(!FX.on||!SFX[k])return;const now=performance.now();if(now-(FX
   try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const t0=AC.currentTime+.01;
     SFX[k].forEach(([f,d,at,type,vol])=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t0+at);
       g.gain.setValueAtTime(0,t0+at);g.gain.linearRampToValueAtTime(vol,t0+at+.012);g.gain.exponentialRampToValueAtTime(.0001,t0+at+d);o.connect(g).connect(AC.destination);o.start(t0+at);o.stop(t0+at+d+.03);});}catch(e){}}
+/* ---------- sons de procedimento (sintetizados com WebAudio, sem arquivos) ---------- */
+let NOISE=null;
+function actx(){AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC;}
+function noiseBuf(){if(NOISE)return NOISE;const a=actx(),n=Math.floor(a.sampleRate*1.5),b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return NOISE=b;}
+/* rajada de ruído filtrado (atrito, líquido, papel) */
+function nz({dur=.1,type='bandpass',f0=1000,f1=f0,q=1,vol=.2,at=.005,delay=0}){const a=actx(),t=a.currentTime+.01+delay,s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();
+  s.buffer=noiseBuf();f.type=type;f.Q.value=q;f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(Math.max(30,f1),t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+at);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  s.connect(f).connect(g).connect(a.destination);s.start(t,Math.random()*1.2);s.stop(t+dur+.05);}
+/* tom curto com deslize de altura (vidro, gota, clique) */
+function tn({f0=800,f1=f0,dur=.08,type='sine',vol=.1,delay=0}){const a=actx(),t=a.currentTime+.01+delay,o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(Math.max(30,f1),t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+.03);}
+const SND={
+  rub:()=>nz({dur:.14,f0:2400,f1:3600,q:.7,vol:.08,at:.035}),                       /* algodão esfregando a pele */
+  suck:f=>{nz({dur:.11,f0:420+700*f,f1:620+900*f,q:4,vol:.1,at:.02});},               /* êmbolo puxando líquido: fica mais agudo conforme enche */
+  air:()=>{nz({dur:.16,f0:1800,f1:900,q:2,vol:.09,at:.01});tn({f0:300,f1:520,dur:.08,vol:.05});}, /* puxou ar: acabou o líquido */
+  push:hard=>nz({dur:.12,f0:hard?1300:800,f1:hard?900:480,q:3,vol:hard?.12:.07,at:.02}),/* êmbolo empurrando */
+  slosh:()=>{nz({dur:.24,type:'lowpass',f0:1000,f1:260,q:7,vol:.24,at:.02});nz({dur:.12,f0:700,f1:1400,q:6,vol:.05,delay:.05});}, /* líquido chacoalhando */
+  tink:()=>{tn({f0:2900,f1:2750,dur:.14,vol:.04});tn({f0:4400,dur:.08,vol:.015});},  /* vidro do frasco */
+  crack:()=>{nz({dur:.05,type:'highpass',f0:3500,q:.7,vol:.35,at:.001});tn({f0:2600,f1:1200,dur:.05,type:'triangle',vol:.06});nz({dur:.12,type:'highpass',f0:5000,vol:.05,delay:.04});}, /* ampola quebrando */
+  pop:()=>{tn({f0:420,f1:110,dur:.09,vol:.18});nz({dur:.035,type:'highpass',f0:1500,vol:.12,at:.001});},   /* lacre, perfurar a bolsa, agulha entrando */
+  snap:()=>{nz({dur:.06,f0:1800,q:1.5,vol:.3,at:.001});tn({f0:230,f1:140,dur:.08,vol:.1});},             /* luva e garrote */
+  water:()=>{for(let i=0;i<7;i++)nz({dur:.28,f0:900+Math.random()*1600,f1:500,q:3,vol:.07,at:.05,delay:i*.11});}, /* lavando as mãos */
+  drip:()=>tn({f0:1500,f1:520,dur:.07,vol:.06}),                                       /* gota na câmara */
+  squeeze:()=>{nz({dur:.12,type:'lowpass',f0:600,f1:260,q:5,vol:.14,at:.02});tn({f0:900,f1:400,dur:.06,vol:.04,delay:.08});}, /* aperto na câmara */
+  clunk:()=>{tn({f0:190,f1:85,dur:.14,type:'triangle',vol:.22});nz({dur:.07,type:'lowpass',f0:1400,vol:.14,at:.002});}, /* caiu no coletor */
+  rip:()=>nz({dur:.2,f0:3200,f1:1400,q:.6,vol:.13,at:.006}),                            /* fita do curativo, etiqueta */
+  click:()=>{tn({f0:1700,dur:.025,type:'square',vol:.035});nz({dur:.02,type:'highpass',f0:3000,vol:.06,at:.001});}, /* encaixe, rolete */
+  clink:()=>{tn({f0:2100,f1:2050,dur:.2,vol:.06});tn({f0:3200,dur:.12,vol:.03,delay:.01});},             /* metal do suporte */
+  stream:d=>nz({dur:d||.4,f0:650,f1:1500,q:2.5,vol:.09,at:.06})                          /* líquido entrando no frasco ou na bolsa */
+};
+function snd(k,gap=60,arg){if(!FX.on||!SND[k])return;const now=performance.now();if(now-(FX.last['s_'+k]||0)<gap)return;FX.last['s_'+k]=now;try{SND[k](arg);}catch(e){}}
 function buzz(p){if(!FX.on)return;try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
 function flash(kind){const st=document.querySelector('.gstage');if(!st)return;st.classList.remove('fl-ok','fl-warn','fl-bad');void st.offsetWidth;st.classList.add('fl-'+kind);}
 function shake(){try{const sc=GAME&&GAME.scene.getScenes(true).find(x=>x.scene.key!=='Boot');if(sc)sc.cameras.main.shake(220,.006);}catch(e){}}
@@ -542,7 +575,7 @@ function setSound(on){FX.on=on;try{localStorage.setItem('sm_som',on?'1':'0');}ca
 const ICON_SND={on:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`,
   off:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`};
 /* animação: higiene das mãos (espuma) e, se pedido, luvas calçadas */
-function handsFX(s,gloves){try{if(!s||!s.sys||!s.sys.isActive())return;sfx('ok');buzz(15);
+function handsFX(s,gloves){try{if(!s||!s.sys||!s.sys.isActive())return;snd('water',300);buzz(15);
   const W0=GW/2,H0=430,C=s.add.container(W0,H0).setScrollFactor(0).setDepth(950).setAlpha(0);
   const bg=s.add.graphics();bg.fillStyle(0x0E4A4F,.9);bg.fillRoundedRect(-230,-190,460,380,36);C.add(bg);
   const lab=T(s,0,148,'Higienizando as mãos…',30,'#fff',{display:true});C.add(lab);
@@ -559,7 +592,7 @@ function handsFX(s,gloves){try{if(!s||!s.sys||!s.sys.isActive())return;sfx('ok')
   s.tweens.add({targets:Rh,x:38,angle:-8,duration:170,yoyo:true,repeat:3,ease:'Sine.InOut'});
   for(let i=0;i<14;i++){const b=s.add.circle(Phaser.Math.Between(-90,90),Phaser.Math.Between(-60,60),Phaser.Math.Between(7,15),0xffffff,.85).setStrokeStyle(2,0xBFE3F5);foam.add(b);
     s.tweens.add({targets:b,y:b.y-Phaser.Math.Between(50,110),alpha:0,scale:1.4,delay:i*55,duration:900,ease:'Quad.Out'});}
-  const glove=()=>{if(!lab.active)return;lab.setText('Calçando as luvas…');[L,Rh].forEach((h,i)=>{h.draw(0xCFE6FA,0x5E8FB8);h.setScale(1.08);s.tweens.add({targets:h,scale:1,duration:220,ease:'Back.Out'});});sfx('tap');buzz(10);
+  const glove=()=>{if(!lab.active)return;lab.setText('Calçando as luvas…');[L,Rh].forEach((h,i)=>{h.draw(0xCFE6FA,0x5E8FB8);h.setScale(1.08);s.tweens.add({targets:h,scale:1,duration:220,ease:'Back.Out'});});snd('snap',0);snd('snap',0);buzz(10);
     s.time.delayedCall(380,()=>{if(lab.active)lab.setText('Luvas calçadas ✓');});};
   if(gloves)s.time.delayedCall(820,glove);else s.time.delayedCall(820,()=>{if(lab.active)lab.setText('Mãos higienizadas ✓');});
   s.tweens.add({targets:C,alpha:0,delay:gloves?1650:1250,duration:280,onComplete:()=>C.destroy()});}catch(e){}}
@@ -931,7 +964,7 @@ class BedS extends Phaser.Scene{
     this.gauze=this.add.image(0,0,'algodao').setScale(1.3).setDepth(60).setVisible(false);
     this.rubBar=this.add.graphics().setDepth(61);
     this.input.on('pointermove',p=>{if(!this.rubbing||!p.isDown)return;const w=this.wp(p);this.gauze.setPosition(w.x+10,w.y-10).setVisible(true);if(!this.onArm(w.x,w.y)&&!this.veinAt(w.x,w.y))return;
-      const last=st.stroke[st.stroke.length-1];if(last&&Math.hypot(last.x-w.x,last.y-w.y)<6)return;st.stroke.push(w);this.rubG.fillStyle(0xffffff,.22);this.rubG.fillCircle(w.x,w.y,28);
+      const last=st.stroke[st.stroke.length-1];if(last&&Math.hypot(last.x-w.x,last.y-w.y)<6)return;st.stroke.push(w);snd('rub',85);this.rubG.fillStyle(0xffffff,.22);this.rubG.fillCircle(w.x,w.y,28);
       const f=Math.min(1,st.stroke.length/18);const g=this.rubBar;g.clear();g.fillStyle(0x0F3238,.8);g.fillRoundedRect(w.x-70,w.y-90,140,22,11);g.fillStyle(f>=1?0x1E9A55:0xFFC43D,1);g.fillRoundedRect(w.x-66,w.y-86,132*f,14,7);});
     this.input.on('pointerup',(p,objs)=>{if(this.rubbing){this.rubbing=false;this.gauze.setVisible(false);this.rubBar.clear();this.endRub();return;}if(objs.length||justDragged(this))return;const w=this.wp(p);if(p.y>=DRAWER_Y*this.scaleY())return;this.worldTap(w.x,w.y);});
     if(!this.isEV)this.buildSupport();
@@ -960,7 +993,7 @@ class BedS extends Phaser.Scene{
     if(k==='luvas'){if(!this.guide.can('luvas'))return;st.gloved=true;this.drawer.luvas.disable();handsFX(this,true);toast('Mãos higienizadas e luvas calçadas.','ok');this.guide.complete('luvas');return;}
     if(k==='cateter'){this.catPicker();return;}
     if(k==='equipo'){if(!B.hung){toast('Pendure o soro no suporte primeiro.','warn');this.goView('suporte');return;}if(!this.guide.can('rolete'))return;
-      B.eq=true;this.drawer.equipo.disable();this.goView('suporte');toast('Equipo no suporte. O rolete vem aberto: deslize a roda para baixo para fechar.');this.setSel(null);return;}
+      B.eq=true;snd('click',0);this.drawer.equipo.disable();this.goView('suporte');toast('Equipo no suporte. O rolete vem aberto: deslize a roda para baixo para fechar.');this.setSel(null);return;}
     if(k==='soro')this.goView('suporte');
     if(['garrote','alcool','extensor','curativo','sf','med'].includes(k))this.goView('braco');
     this.setSel(k,DRAWER_NAMES[k]);
@@ -995,10 +1028,10 @@ class BedS extends Phaser.Scene{
     if(sel.startsWith('cat')){if(!this.onArm(x,y)&&!this.veinAt(x,y))return;if(!this.guide.can('puncao'))return;this.tryCath(+sel.slice(3),x,y);return;}
     if(sel==='mandril'){if(Math.hypot(x-610,y-790)<100){if(!this.guide.can('mandril'))return;
         if(st.gar)note(R,false,'Retirou o mandril com o garrote apertado: houve extravasamento de sangue.',-5,'mandgar');
-        st.mandril=false;this.mandImg.destroy();this.setSel(null);toast('Mandril descartado no coletor.','ok');this.guide.complete('mandril');this.redrawArm();}
+        st.mandril=false;snd('clunk',0);this.mandImg.destroy();this.setSel(null);toast('Mandril descartado no coletor.','ok');this.guide.complete('mandril');this.redrawArm();}
       else toast('Descarte o mandril no coletor amarelo.','warn');return;}
     if(sel==='extensor'){if(!this.near(st.cath,x,y,90))return;if(st.mandril){toast('Retire o mandril primeiro.','warn');return;}if(!this.guide.can('extensor'))return;
-      st.ext=true;this.port={x:st.cath.x+110,y:st.cath.y+150};this.drawer.extensor.disable();this.setSel(null);toast('Extensor conectado.','ok');this.guide.complete('extensor');this.redrawArm();return;}
+      st.ext=true;snd('click',0);this.port={x:st.cath.x+110,y:st.cath.y+150};this.drawer.extensor.disable();this.setSel(null);toast('Extensor conectado.','ok');this.guide.complete('extensor');this.redrawArm();return;}
     if(sel==='med'){if(!this.near(this.port,x,y,90)){if(this.near(st.cath,x,y)||!st.cath)toast(st.cath?'Conecte o extensor primeiro.':'Puncione a veia primeiro.');return;}
       if(!this.guide.can('administrar'))return;
       if(st.gar){note(R,false,'Solte o garrote antes de administrar a medicação.',-5,'garmed');return;}
@@ -1008,20 +1041,20 @@ class BedS extends Phaser.Scene{
         st.given=true;this.drawer.med.disable();speedNotes(R,res,c.key,false);
         toast('Medicação administrada. Agora lave o acesso com SF 0,9%.','ok');this.guide.complete('administrar');});return;}
     if(sel==='sf'){if(!this.near(this.port,x,y,90)){if(this.near(st.cath,x,y))toast('Conecte o extensor primeiro.');return;}
-      if(this.isEV&&st.given&&!st.flushed){if(!this.guide.can('lavar'))return;st.flushed=true;this.setSel(null);toast('Acesso lavado com SF 0,9%: a medicação que ficou no extensor chegou à veia.','ok');this.guide.complete('lavar');return;}
+      if(this.isEV&&st.given&&!st.flushed){if(!this.guide.can('lavar'))return;st.flushed=true;snd('push',0);this.setSel(null);toast('Acesso lavado com SF 0,9%: a medicação que ficou no extensor chegou à veia.','ok');this.guide.complete('lavar');return;}
       if(st.tested){toast(this.isEV&&!st.given?'Acesso já testado. Agora administre a medicação.':'Acesso já testado.');return;}
       if(!this.guide.can('teste'))return;
       if(st.gar){note(R,'warn','Resistência e dor ao lavar: o garrote ainda está apertado.',-3,'garflush');return;}
-      st.tested=true;this.setSel(null);toast('Acesso pérvio: sem dor, sem edema.','ok');this.guide.complete('teste');return;}
+      st.tested=true;snd('push',0);this.setSel(null);toast('Acesso pérvio: sem dor, sem edema.','ok');this.guide.complete('teste');return;}
     if(sel==='curativo'){if(!this.near(st.cath,x,y,90))return;if(st.mandril){toast('Retire o mandril antes de fixar.');return;}if(!this.guide.can('fixar'))return;
-      st.fixed=true;this.drawer.curativo.disable();this.setSel(null);
+      st.fixed=true;snd('rip',0);this.drawer.curativo.disable();this.setSel(null);
       {const g=st.cath.g,now=new Date(),hh=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
         this.catTag=T(this,st.cath.x+78,st.cath.y-8,`${g} G · ${hh}`,20,g===24?'#0F3238':'#ffffff').setBackgroundColor(CATS[g].cor).setPadding(8,3,8,3).setDepth(9).setAngle(-6);}
       toast(`Acesso fixado e identificado: cateter ${st.cath.g} G (${CATS[st.cath.g].nome}), data e hora.`,'ok');this.guide.complete('fixar');this.redrawArm();return;}
     if(sel==='ponta'){if(!this.near(this.port,x,y,90))return;if(!this.guide.can('conectar'))return;
       if(st.gar){note(R,false,'Solte o garrote antes de iniciar a infusão.',-5,'garmed');return;}
       if(B.air||!B.primed)note(R,false,'Conectou o equipo com ar: risco de embolia gasosa.',-6,'airconn');
-      B.conn=true;B.rate=0;this.setSel(null);toast('Equipo conectado. Agora regule o gotejamento no suporte.','ok');this.guide.complete('conectar');this.showGauge();this.redrawArm();return;}
+      B.conn=true;B.rate=0;snd('click',0);this.setSel(null);toast('Equipo conectado. Agora regule o gotejamento no suporte.','ok');this.guide.complete('conectar');this.showGauge();this.redrawArm();return;}
     if(sel==='soro'){if(Math.hypot(x-1060,y-52)<130||(x>900&&y<380)){if(!this.guide.can('pendurar'))return;this.hang();}return;}
   }
   endRub(){const st=this.st;if(!st.stroke||!st.stroke.length)return;
@@ -1032,11 +1065,11 @@ class BedS extends Phaser.Scene{
     st.rub={x:mx,y:my,t:this.time.now};toast('Antissepsia feita. Espere secar e puncione nesse local.','ok');this.setSel(null);this.guide.complete('antissepsia');
     this.tweens.add({targets:this.rubG,alpha:.35,duration:3000});}
   placeGarrote(y){const st=this.st;if(!st.gloved)note(this.R,'warn','Calce as luvas antes de tocar no paciente.',-6,'luvas');
-    st.gar={y};this.setSel(null);toast('Garrote amarrado. Toque nele quando for soltar.','ok');this.guide.complete('garrote');this.redrawArm();
+    st.gar={y};snd('snap',0);this.setSel(null);toast('Garrote amarrado. Toque nele quando for soltar.','ok');this.guide.complete('garrote');this.redrawArm();
     if(this.garZone)this.garZone.destroy();const [l,r]=this.armEdges(y);
     this.garZone=this.add.zone((l+r)/2,y,r-l+80,70).setInteractive({useHandCursor:true}).setDepth(30);
     const solta=()=>{if(this.sel&&this.sel!=='garrote')return;if(!st.cath){toast('Puncione antes de soltar o garrote. Se quiser reposicionar, toque no garrote da gaveta.');return;}
-      if(!this.guide.can('soltar'))return;st.gar=null;this.garZone.destroy();this.garZone=null;toast('Garrote solto.','ok');this.guide.complete('soltar');this.redrawArm();};
+      if(!this.guide.can('soltar'))return;st.gar=null;snd('snap',0);this.garZone.destroy();this.garZone=null;toast('Garrote solto.','ok');this.guide.complete('soltar');this.redrawArm();};
     dragify(this,this.garZone,solta,()=>{solta();return false;});}
   redrawArm(){const g=this.armG,st=this.st;g.clear();
     if(st.gar){const [l,r]=this.armEdges(st.gar.y);g.fillStyle(0x3B86DA,1);g.fillRoundedRect(l-10,st.gar.y-14,r-l+20,28,8);g.fillStyle(0xffffff,.35);g.fillRect(l-6,st.gar.y-12,r-l+12,6);
@@ -1091,7 +1124,7 @@ class BedS extends Phaser.Scene{
   /* ---------- suporte de soro ---------- */
   hang(){const B=this.st.bag;B.hung=true;this.drawer.soro.disable();this.setSel(null);this.hookT.setVisible(false);
     this.bagImg=this.add.container(1060,200,[this.add.image(0,0,'bag').setScale(1.5),fitW(T(this,0,-30,this.c.soro.sol,24,'#fff',{display:true}),118),T(this,0,4,this.c.soro.vol+' ml',22,'#fff'),...(this.c.tipo==='ev_bol'?[T(this,0,66,'+ '+nm(this.c.d),20,'#0F3238').setBackgroundColor('#ffffff').setPadding(8,2,8,2)]:[])]).setDepth(9);
-    toast('Soro pendurado.','ok');this.guide.complete('pendurar');}
+    snd('clink',0);toast('Soro pendurado.','ok');this.guide.complete('pendurar');}
   buildSupport(){const s=this,B=this.st.bag;
     this.tubePath=null;
     this.rollZ=s.add.zone(1060,700,150,200).setInteractive({useHandCursor:true}).setDepth(40);
@@ -1105,18 +1138,18 @@ class BedS extends Phaser.Scene{
     this.chZ=s.add.zone(1060,-600,320,260).setInteractive({useHandCursor:true}).setDepth(40);
     this.chZ.on('pointerdown',()=>{if(!B.spiked){if(B.eq)toast('Perfure a bolsa antes de encher a câmara.');return;}if(!this.guide.can('camara'))return;if(B.ch>=1){toast('A câmara já está cheia.');return;}
       /* cada aperto empurra um pouco de soro; segurar continua enchendo devagar */
-      this.holding=true;this.squeeze=1;B.ch=Math.min(1,B.ch+.12);sfx('tap');buzz(8);
+      this.holding=true;this.squeeze=1;B.ch=Math.min(1,B.ch+.12);snd('squeeze',40);buzz(8);
       const d=this.add.circle(1060,this.chTop+6,7,0x7FB2E4).setDepth(11);this.tweens.add({targets:d,y:this.chTop+120-142*B.ch,duration:260,ease:'Quad.In',onComplete:()=>d.destroy()});});
     s.input.on('pointerup',()=>{if(this.holding){this.holding=false;if(B.ch>=.45&&!this.guide.done.has('camara')){this.guide.complete('camara');if(B.ch>.8)note(this.R,'warn','Câmara cheia demais: fica difícil contar as gotas. O ideal é entre 1/2 e 2/3.',-2,'chfull');}}});
     this.spike=s.add.zone(1060,-600,110,110).setInteractive({useHandCursor:true,draggable:true}).setDepth(41);
     this.spikeY=0;
     this.spike.on('drag',(p,x,y)=>{if(B.spiked||!B.eq)return;this.spikeDrag=Phaser.Math.Clamp(y,330,470);});
     this.spike.on('dragend',()=>{if(B.spiked||!B.eq)return;if(this.spikeDrag!==undefined&&this.spikeDrag<370){if(!this.guide.can('perfurar')){this.spikeDrag=undefined;return;}
-        B.spiked=true;this.spike.disableInteractive();if(B.open){note(this.R,'warn','Perfurou a bolsa com o rolete aberto: o soro escorreu. Feche o rolete antes.',-3,'spill1');B.front=.5;B.air=true;if(!this.guide.done.has('rolete'))this.guide.done.add('rolete');}
+        B.spiked=true;snd('pop',0);this.spike.disableInteractive();if(B.open){note(this.R,'warn','Perfurou a bolsa com o rolete aberto: o soro escorreu. Feche o rolete antes.',-3,'spill1');B.front=.5;B.air=true;if(!this.guide.done.has('rolete'))this.guide.done.add('rolete');}
         toast('Bolsa perfurada. Agora aperte a câmara até a faixa verde.','ok');this.guide.complete('perfurar');}
       this.spikeDrag=undefined;});
   }
-  setRoller(open){const B=this.st.bag;
+  setRoller(open){const B=this.st.bag;if(open!==B.open)snd('click',0);
     if(!B.spiked){if(!open&&!this.guide.done.has('rolete')){if(!this.guide.can('rolete'))return;B.open=false;toast('Rolete fechado. Agora arraste a ponta branca do equipo até a bolsa.','ok');this.guide.complete('rolete');return;}B.open=open;return;}
     if(B.primed&&!B.conn){B.open=open;return;}
     if(open&&!B.open){if(!this.guide.can('ar'))return;if(B.ch<.35&&!B.air){B.air=true;note(this.R,'warn','Abriu o rolete com a câmara quase vazia: entrou ar no equipo.',-3,'air');}B.open=true;toast('O soro está descendo. Feche quando chegar à ponta.');return;}
@@ -1185,7 +1218,7 @@ class BedS extends Phaser.Scene{
       if(!this._rlab){this._rlab=T(this,sx+130,700,'rolete',28,'#3B5A60');this._clab=T(this,sx+130,0,'câmara',28,'#3B5A60');this._slab=T(this,sx+140,0,'ponta do\nequipo',26,'#3B5A60');}
       this._clab.y=(chT+chB)/2;{const act=B.spiked&&!this.guide.done.has('camara');this._clab.setText(act?(B.ch<.45?'aperte\na câmara':B.ch<=.8?'no ponto:\nsolte':'cheia\ndemais'):'câmara').setColor(act&&B.ch>=.45&&B.ch<=.8?'#1E9A55':act&&B.ch>.8?'#D9403A':'#3B5A60');}this._slab.y=tip+20;this._slab.setVisible(!B.spiked);
       // gotas
-      if(B.conn&&B.rate>0){this.dropT=(this.dropT||0)+dt;if(this.dropT>60000/B.rate){this.dropT=0;const d=this.add.circle(sx,chT+12,B.micro?5:8,0x2D7FD3).setDepth(11);this.tweens.add({targets:d,y:chB-14-142*B.ch,duration:300,ease:'Quad.In',onComplete:()=>d.destroy()});}}
+      if(B.conn&&B.rate>0){this.dropT=(this.dropT||0)+dt;if(this.dropT>60000/B.rate){this.dropT=0;if(this.view==='suporte')snd('drip',70);const d=this.add.circle(sx,chT+12,B.micro?5:8,0x2D7FD3).setDepth(11);this.tweens.add({targets:d,y:chB-14-142*B.ch,duration:300,ease:'Quad.In',onComplete:()=>d.destroy()});}}
       if(this.gauge){const pos=Math.min(1,B.rate/this.gMax);this.gMark.x=this.gx+pos*this.gw;this.gNum.setText(`${B.rate} ${B.micro?'microgotas':'gotas'}/min`);}
     }
     // destaques do treino
@@ -1241,7 +1274,8 @@ function aspirePanelP(s,{cap,base,liq,title,maxMl,hint},cb){
   const sub=T(s,360,658,'',22,'#557178',{w:'700'});C.add(sub);
   const draw=()=>{drawSyr(g,cap,tot,null,liq,k);knob.x=gx+x0+tot/cap*L+thumb;hand.x=knob.x;
     reading.setText(`+ ${fmt(round1(tot-base))} ml`);sub.setText(`Total na seringa: ${fmt(round1(tot))} ml`+(hi<cap-1e-6&&tot>=hi-1e-6?' · acabou o conteúdo':''));};
-  const setX=x=>{const raw=(x-thumb-gx-x0)/L*cap;let t=Math.round(raw/step)*step;if(raw>=hi-step*.5)t=hi;tot=Phaser.Math.Clamp(t,lo,hi);draw();};
+  const setX=x=>{const raw=(x-thumb-gx-x0)/L*cap;let t=Math.round(raw/step)*step;if(raw>=hi-step*.5)t=hi;const prev=tot;tot=Phaser.Math.Clamp(t,lo,hi);
+    if(tot>prev+1e-6)snd('suck',65,tot/cap);else if(hi<cap-1e-6&&tot>=hi-1e-6&&raw>hi+step)snd('air',2000);draw();};
   let grab=null;const zone=s.add.zone(360,y,700,230).setInteractive({useHandCursor:true});C.add(zone);
   zone.on('pointerdown',p=>{grab=p.x-knob.x;});zone.on('pointermove',p=>{if(grab!==null&&p.isDown)setX(p.x-grab);});
   zone.on('pointerup',()=>{grab=null;});zone.on('pointerout',()=>{grab=null;});
@@ -1293,7 +1327,7 @@ function injectPanelP(s,{cap,vol,p,name,tmin,liq,title,target},cb){
     qty.setText(`${fmt(round1(vol-rem))} de ${fmt(round1(vol))} ml injetados`);};
   draw();
   const ev=s.time.addEvent({delay:50,loop:true,callback:()=>{const now=performance.now(),dt=Math.min(.25,(now-last)/1000);last=now;if(done)return;
-    const rate=f*maxRate;if(f>0)sim+=dt*SPEED;const dml=Math.min(rem,rate*dt*SPEED);rem-=dml;if(rate>green)fast+=dml;
+    const rate=f*maxRate;if(f>0)sim+=dt*SPEED;const dml=Math.min(rem,rate*dt*SPEED);rem-=dml;if(rate>green)fast+=dml;if(dml>0)snd('push',rate>green?90:150,rate>green);
     mk.x=mx+Math.min(1,f)*mw;face.setMood(rate>green?'pain':'calm');draw();
     /* rápido demais: o paciente geme e reclama */
     if(rate>green&&now-lastOw>1600){lastOw=now;groan(p,rate>green*1.8);say(s,C,face.x+150,face.y-60,ouch(p));s.tweens.add({targets:face,x:face.x+6,duration:50,yoyo:true,repeat:3});}
@@ -1395,10 +1429,10 @@ class PrepEV extends Phaser.Scene{
     shelfDrag(this.etiq,{kind:'label'});
   }
   /* chacoalhar: segurar e arrastar de um lado para o outro (frasco reconstituído e bolsa com medicação) */
-  shakeOn(C,canShake,done){let lx=null,dir=0,run=0,n=0;const bar=this.add.graphics().setDepth(90);C._shook=false;
+  shakeOn(C,canShake,done,glass){let lx=null,dir=0,run=0,n=0;const bar=this.add.graphics().setDepth(90);C._shook=false;
     C.on('dragstart',()=>{lx=null;dir=0;run=0;n=0;C._shook=false;});
     C.on('drag',p=>{if(!canShake()||n<0)return;if(lx===null){lx=p.x;return;}const dx=p.x-lx;lx=p.x;if(Math.abs(dx)<1)return;const d=Math.sign(dx);
-      if(d!==dir){if(run>16){n++;sfx('tap');buzz(6);C._shook=true;}dir=d;run=0;}run+=Math.abs(dx);C.setAngle(Phaser.Math.Clamp(dx*1.6,-20,20));
+      if(d!==dir){if(run>16){n++;snd('slosh',110);if(glass)snd('tink',90);buzz(6);C._shook=true;}dir=d;run=0;}run+=Math.abs(dx);C.setAngle(Phaser.Math.Clamp(dx*1.6,-20,20));
       const f=Math.min(1,n/6);bar.clear();bar.fillStyle(0x0F3238,.85);bar.fillRoundedRect(C.x-60,C.y-118,120,20,10);bar.fillStyle(f>=1?0x1E9A55:0xFFC43D,1);bar.fillRoundedRect(C.x-56,C.y-114,112*f,12,6);
       if(n>=6){n=-1;bar.clear();done();}});
     C.on('dragend',()=>{bar.clear();if(C.active)C.setAngle(0);});}
@@ -1407,7 +1441,7 @@ class PrepEV extends Phaser.Scene{
     this._anim=true;this.setSel(null);C.setAlpha(1).setDepth(95);const v0=this.syrTotal(),liq=y.drug>0?LIQ_DRUG:LIQ_DIL;
     const tx=mode==='top'?t.x:t.x-reach+16,ty=mode==='top'?t.y-reach+16:t.y;
     this.tweens.add({targets:C,x:tx,y:ty,angle:mode==='top'?-90:180,duration:420,ease:'Cubic.Out',onComplete:()=>{sfx('tap');buzz(8);
-      this.tweens.addCounter({from:v0,to:0,duration:Math.min(1500,550+v0*45),onUpdate:tw=>drawSyr(this.syrG,y.cap,tw.getValue(),y.needle,liq,k),
+      snd('stream',0,Math.min(1.5,.55+v0*.045));this.tweens.addCounter({from:v0,to:0,duration:Math.min(1500,550+v0*45),onUpdate:tw=>drawSyr(this.syrG,y.cap,tw.getValue(),y.needle,liq,k),
         onComplete:()=>{for(let i=0;i<7;i++){const d=this.add.circle(t.dx+Phaser.Math.Between(-14,14),t.dy+Phaser.Math.Between(-10,10),Phaser.Math.Between(4,7),liq,.95).setDepth(96);
             this.tweens.add({targets:d,y:d.y+Phaser.Math.Between(12,30),alpha:0,scale:1.7,delay:i*45,duration:520,onComplete:()=>d.destroy()});}
           sfx('ok');this.tweens.add({targets:C,x:300,y:880,angle:0,duration:360,delay:120,ease:'Cubic.InOut',onComplete:()=>{C.setDepth(0);this._anim=false;cb();this.drawSyrB();}});}});}});}
@@ -1418,7 +1452,7 @@ class PrepEV extends Phaser.Scene{
     const i=this.bench.length,p=this.slotPos(i);
     it.img=s.add.image(0,0,it.tex).setScale(.95);it.lab=T(s,0,84,it.label,it.label.length>11?15:18,'#0F3238');
     it.C=s.add.container(p.x,p.y,[it.img,it.lab]).setSize(100,170).setInteractive({useHandCursor:true});dragify(this,it.C,()=>this.tapBench(it),pp=>this.dropBench(it,pp));
-    if(it.kind==='med'&&it.fr)this.shakeOn(it.C,()=>!it.powder&&!it.mixed&&this.sel!=='syr'&&!this._anim,()=>this.agitar(it));
+    if(it.kind==='med'&&it.fr)this.shakeOn(it.C,()=>!it.powder&&!it.mixed&&this.sel!=='syr'&&!this._anim,()=>this.agitar(it),true);
     this.bench.push(it);return it;}
   layoutBench(){this.bench.forEach((b,i)=>{const p=this.slotPos(i);b.C.homeX=p.x;b.C.homeY=p.y;this.tweens.add({targets:b.C,x:p.x,y:p.y,duration:220});});}
   removeBench(it){it.C.destroy();this.bench=this.bench.filter(b=>b!==it);this.layoutBench();}
@@ -1495,19 +1529,19 @@ class PrepEV extends Phaser.Scene{
       y.needle=o.key;this.aspNeedle=o.key;this.drawSyrB();toast(`Agulha ${o.key.replace('x',' × ')} encaixada na seringa.`,'ok');this.guide.complete('agu');return;}
     if(o.kind==='label'){
       if(this.bol){if(!this.bag||this.bag.drug<=0){toast('Injete a medicação na bolsa antes de identificá-la.','warn');return;}if(!this.guide.can('rotulo'))return;
-        this.bag.labeled=true;this.drawBag();toast(`Etiqueta: ${c.p.n} · Leito ${c.leito} · ${nm(c.d)} ${c.d.dose} em ${this.bag.sol} ${this.bag.vol} ml · EV · ${c.hora} · correr em ${tempoTxt(sp.tempo)}`,'ok');this.guide.complete('rotulo');return;}
+        this.bag.labeled=true;snd('rip',0);this.drawBag();toast(`Etiqueta: ${c.p.n} · Leito ${c.leito} · ${nm(c.d)} ${c.d.dose} em ${this.bag.sol} ${this.bag.vol} ml · EV · ${c.hora} · correr em ${tempoTxt(sp.tempo)}`,'ok');this.guide.complete('rotulo');return;}
       if(!this.syr||this.syr.drug<=0){toast('Aspire a medicação antes de identificar a seringa.','warn');return;}if(!this.guide.can('rotulo'))return;
-      this.syr.labeled=true;this.drawSyrB();toast(`Etiqueta: ${c.p.n} · Leito ${c.leito} · ${nm(c.d)} ${c.d.dose} · ${c.via} · ${c.hora}`,'ok');this.guide.complete('rotulo');}
+      this.syr.labeled=true;snd('rip',0);this.drawSyrB();toast(`Etiqueta: ${c.p.n} · Leito ${c.leito} · ${nm(c.d)} ${c.d.dose} · ${c.via} · ${c.hora}`,'ok');this.guide.complete('rotulo');}
   }
   agitar(b){if(!this.guide.can('agitar'))return;b.mixed=true;toast('Frasco agitado em movimentos circulares: o pó dissolveu.','ok');this.guide.complete('agitar');}
   homog(b){if(!this.guide.can('homog'))return;b.homog=true;this.drawBag();toast('Bolsa homogeneizada: medicação misturada ao soro.','ok');this.guide.complete('homog');}
-  wobble(o){this.tweens.add({targets:o,angle:{from:-8,to:8},duration:90,yoyo:true,repeat:1,onComplete:()=>o.setAngle(0)});}
+  wobble(o){snd('slosh',150);this.tweens.add({targets:o,angle:{from:-8,to:8},duration:90,yoyo:true,repeat:1,onComplete:()=>o.setAngle(0)});}
   tapBench(b){if(this._anim)return;
     if(this.sel==='syr'){this.useSyrOn(b);return;}
     if(b.kind==='bag'){if(b.drug>0&&!b.homog){this.wobble(b.C);toast('Segure a bolsa e chacoalhe: arraste de um lado para o outro.','info');return;}
       toast(b.drug>0?'Bolsa pronta.':'Toque na seringa com a medicação e depois na bolsa para injetar.');return;}
     if(!b.open){if(b.kind==='med'&&LEVEL==='treino'&&b.key!==this.c.key){toast(`${b.label} não é o prescrito: devolva à prateleira (arraste de volta).`,'warn');return;}
-      if(b.kind==='med'&&!this.guide.can('abrir'))return;b.open=true;
+      if(b.kind==='med'&&!this.guide.can('abrir'))return;b.open=true;snd(b.kind==='med'&&b.fr?'pop':'crack',0);
       if(b.kind==='med'){if(!b.fr)b.img.setTexture('ampolaQ');toast(b.fr?'Lacre removido e borracha desinfetada com álcool 70%.':'Ampola aberta: gargalo protegido com algodão ao quebrar.','ok');this.guide.complete('abrir');}
       else{b.img.setTexture(b.kind==='abd'?'abdQ':'kitQ');toast('Ampola aberta.','ok');}return;}
     if(b.kind==='med'&&b.fr&&!b.powder&&!b.mixed){if(!this.guide.can('agitar'))return;this.wobble(b.C);toast('Segure o frasco e chacoalhe: arraste de um lado para o outro até dissolver.','info');return;}
@@ -1551,12 +1585,12 @@ class PrepEV extends Phaser.Scene{
     if(this.sel!=='syr'){toast(this.bol?'Toque na seringa e depois no coletor para descartá-la.':'Toque na seringa e depois no coletor para descartar a agulha de aspiração.');return;}
     const dropAmp=()=>{this.bench=this.bench.filter(b=>{const out=b.open&&(b.kind!=='med'||!b.fr);if(out)b.C.destroy();return !out;});this.layoutBench();};
     if(this.bol){if(!y.injected){toast('Injete a medicação na bolsa antes de descartar a seringa.','warn');return;}if(!this.guide.can('descarte'))return;
-      this.setSel(null);this.syr=null;dropAmp();this.drawSyrB();toast('Seringa, agulha e ampolas abertas descartadas no coletor.','ok');this.guide.complete('descarte');return;}
+      snd('clunk',0);this.setSel(null);this.syr=null;dropAmp();this.drawSyrB();toast('Seringa, agulha e ampolas abertas descartadas no coletor.','ok');this.guide.complete('descarte');return;}
     if(!y.needle){toast('A seringa já está sem agulha.');return;}
     if(y.drug<=0){toast('Aspire a medicação antes de retirar a agulha.','warn');return;}
     if(this.im&&y.discarded){toast('Essa é a agulha de aplicação: leve a seringa ao leito.','warn');return;}
     if(!this.guide.can('descarte'))return;
-    y.needle=null;y.discarded=true;dropAmp();
+    y.needle=null;y.discarded=true;snd('clunk',0);dropAmp();
     this.setSel(null);toast(this.im?'Agulha de aspiração descartada. Agora encaixe a agulha de aplicação.':'Agulha de aspiração e ampolas abertas descartadas no coletor.','ok');this.guide.complete('descarte');}
   update(t){const g=this.hl;g.clear();
     {const p=this.input.activePointer;let o=null;
@@ -1682,7 +1716,7 @@ function imAnglePanelP(s,{needle,p},cb){
   knob.on('drag',(pp,x)=>{if(done)return;x=Phaser.Math.Clamp(x,sx0,sx0+sw);knob.x=x;ang=Math.round(10+(x-sx0)/sw*80);angT.setText(`Ângulo: ${ang}°`);draw();});
   /* tocar ou arrastar em qualquer ponto da régua */{const tz=s.add.zone(sx0+sw/2,yy,sw+90,100).setInteractive();C.addAt(tz,C.getIndex(knob));tz.on('pointerdown',p=>knob.emit('drag',p,p.x));tz.on('pointermove',p=>{if(p.isDown)knob.emit('drag',p,p.x);});}
   C.add(button(s,360,910,'Inserir',()=>{if(done)return;done=true;s.tweens.addCounter({from:0,to:1,duration:700,onUpdate:tw=>{ins=tw.getValue();draw();},onComplete:()=>{
-    const depth=Math.sin(ang*Math.PI/180)*n.len*3.6;const layer=depth>28+F?'músculo':depth>12?'subcutâneo':'derme';
+    snd('pop',0);const depth=Math.sin(ang*Math.PI/180)*n.len*3.6;const layer=depth>28+F?'músculo':depth>12?'subcutâneo':'derme';
     C.add(T(s,360,1000,`A ponta da agulha está no ${layer}`,28,layer==='músculo'?'#1E9A55':'#D9403A',{display:true}));
     s.time.delayedCall(1300,()=>{C.destroy();cb({ang,layer});});}});},{w:300,h:84,size:30}));
   return C;
@@ -1716,8 +1750,8 @@ class BedIM extends Phaser.Scene{
     this.input.dragDistanceThreshold=12;
     const siteAt=this.siteAt=(x,y)=>{let b=null;for(const [k,v] of Object.entries(SITES)){const d=Math.hypot(v.x-x,v.y-y);if(d<80&&(!b||d<b.d))b={k,d};}return b&&b.k;};
     s.input.on('pointerdown',p=>{if(this.sel!=='alcool'||p.y>DRAWER_Y)return;const k=siteAt(p.x,p.y);if(!k)return;this.rubbing={k,n:0,last:null};this.coldOnce();this.gauze.setPosition(p.x+10,p.y-10).setVisible(true);});
-    s.input.on('pointermove',p=>{const r=this.rubbing;if(!r||!p.isDown)return;this.gauze.setPosition(p.x+10,p.y-10);const v=SITES[r.k];if(Math.hypot(p.x-v.x,p.y-v.y)>95)return;
-      if(r.last&&Math.hypot(r.last.x-p.x,r.last.y-p.y)<6)return;r.last={x:p.x,y:p.y};r.n++;this.rubG.fillStyle(0xffffff,.22);this.rubG.fillCircle(p.x,p.y,22);
+    s.input.on('pointermove',p=>{const r=this.rubbing;if(!r||!p.isDown)return;this.gauze.setPosition(p.x+10,p.y-10);let k0=null,dm=95;for(const [k,v] of Object.entries(SITES)){const d=Math.hypot(p.x-v.x,p.y-v.y);if(d<dm){dm=d;k0=k;}}if(!k0)return;
+      if(r.last&&Math.hypot(r.last.x-p.x,r.last.y-p.y)<6)return;r.last={x:p.x,y:p.y};r.c=r.c||{};r.c[k0]=(r.c[k0]||0)+1;if(r.c[k0]>(r.c[r.k]||0))r.k=k0;r.n=r.c[r.k];snd('rub',85);this.rubG.fillStyle(0xffffff,.22);this.rubG.fillCircle(p.x,p.y,22);
       const f=Math.min(1,r.n/18),g=this.rubBar;g.clear();g.fillStyle(0x0F3238,.8);g.fillRoundedRect(p.x-70,p.y-90,140,22,11);g.fillStyle(f>=1?0x1E9A55:0xFFC43D,1);g.fillRoundedRect(p.x-66,p.y-86,132*f,14,7);});
     s.input.on('pointerup',()=>{const r=this.rubbing;if(!r)return;this.rubbing=null;this._rubT=performance.now();this.gauze.setVisible(false);this.rubBar.clear();
       if(r.n<18){if(r.n>0)toast('Esfregue mais: vá e volte sobre o local.');else toast('Esfregue o algodão sobre o local: arraste o dedo, indo e voltando.');this.rubG.clear();return;}this.applyRub(r.k);});
@@ -1768,7 +1802,7 @@ class BedIM extends Phaser.Scene{
     st.rub=true;this.markSite();this.setSel(null);this.tweens.add({targets:this.rubG,alpha:.35,duration:2500});
     toast('Antissepsia feita. Espere secar antes de aplicar.','ok');this.guide.complete('antissepsia');}
   tapSharps(){const st=this.st;if(this.sel!=='usado'){toast(st.given?'Toque na seringa usada e depois aqui.':'O coletor é para a seringa depois da aplicação.');return;}
-    if(!this.guide.can('descarte'))return;st.disc=true;this.used.destroy();this.setSel(null);toast('Seringa e agulha descartadas no coletor, sem reencapar.','ok');this.guide.complete('descarte');}
+    if(!this.guide.can('descarte'))return;st.disc=true;snd('clunk',0);this.used.destroy();this.setSel(null);toast('Seringa e agulha descartadas no coletor, sem reencapar.','ok');this.guide.complete('descarte');}
   update(time){const h=this.hl,hu=this.hlUI;if(!h)return;
     {const ky=this._ghostKey||this.sel,p=this.input.activePointer,gl=this.st.gloved;let o=null;
       if(this.rubbing&&this.gauze.visible)o={key:'rub',x:this.gauze.x,y:this.gauze.y,gloved:gl};
@@ -1816,7 +1850,7 @@ function puncturePanelP(s,gauge,cb){
   const rel=()=>{if(!hold)return;hold=false;if(state!=='adv')return;if(inV(tip()))end(true);};go.on('pointerup',rel);go.on('pointerout',rel);s.input.on('pointerup',rel);
   let lastT=performance.now(),said=false;const bl=T(s,360,1010,'',30,'#C8202A',{display:true});C.add(bl);s._punc=()=>({flash,state,adv});
   const ev=s.time.addEvent({delay:16,loop:true,callback:()=>{const now=performance.now(),k=Math.min(4,(now-lastT)/16.7);lastT=now;if(state!=='adv'||!hold)return;adv+=(flash?.45:.9)*k;const t=tip(),iv=inV(t);
-    if(iv){flash=true;wasIn=true;if(!said){said=true;bl.setText(LEVEL==='prova'?'':'Sangue na câmara! Solte o botão.');}}if(wasIn&&!iv){bl.setText('');end(false,'transfix');return;}if(adv>235){end(false,'miss');return;}drawC();}});
+    if(iv){flash=true;wasIn=true;if(!said){said=true;snd('pop',0);bl.setText(LEVEL==='prova'?'':'Sangue na câmara! Solte o botão.');}}if(wasIn&&!iv){bl.setText('');end(false,'transfix');return;}if(adv>235){end(false,'miss');return;}drawC();}});
   function end(ok,why){state='done';ev.remove();s.input.off('pointerup',rel);drawC();
     bl.setText('');C.add(T(s,360,1010,ok?'Refluxo de sangue na câmara!':why==='transfix'?'Atravessou a veia: hematoma.':'Não atingiu a veia.',30,ok?'#1E9A55':'#D9403A',{display:true}));
     s.time.delayedCall(1200,()=>{C.destroy();cb({ok,why,ang,up});});}
@@ -1922,7 +1956,7 @@ function home(){S.run++;CUR=null;$('#casePill').hidden=true;$('#ptsPill').hidden
     <div class="modes">${MODES.map(([k,ic,t,d])=>`<button class="mode ${MODE===k?'on':''}" data-m="${k}"><span class="ic">${ICON[ic]}</span><div><span class="tag">3 casos${k==='misto'?' · sorteados':''}</span><h3>${t}</h3><small>${d}</small><span class="bw" data-b="${k}">${bestTxt(k)}</span></div></button>`).join('')}</div>
     <button class="primary big" id="start">Começar plantão</button>
     <button class="linkbtn" id="howBtn">Como jogar</button>
-    <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem. <span class="ver">· v8.7</span></p>`);
+    <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem. <span class="ver">· v8.8</span></p>`);
   document.querySelectorAll('.lvl').forEach(b=>b.onclick=()=>{LEVEL=b.dataset.l;sfx('tap');document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.bw').forEach(x=>x.innerHTML=bestTxt(x.dataset.b));});
   document.querySelectorAll('.mode[data-m]').forEach(b=>b.onclick=()=>{MODE=b.dataset.m;sfx('tap');document.querySelectorAll('.mode[data-m]').forEach(x=>x.classList.toggle('on',x===b));});
   $('#howBtn').onclick=()=>howTo(null);
