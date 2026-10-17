@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0E4A4F">
 <title>Sala de Medicação</title>
+<meta name="description" content="Simulador para técnicos de enfermagem: confira o paciente, prepare a medicação, puncione a veia e administre.">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Sala de Medicação"><meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230E4A4F'/%3E%3Crect x='20' y='8' width='24' height='30' rx='8' fill='%23CFE6FA'/%3E%3Crect x='24' y='19' width='16' height='9' rx='3' fill='%23fff'/%3E%3Cpath d='M32 38v16' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E"><link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230E4A4F'/%3E%3Crect x='20' y='8' width='24' height='30' rx='8' fill='%23CFE6FA'/%3E%3Crect x='24' y='19' width='16' height='9' rx='3' fill='%23fff'/%3E%3Cpath d='M32 38v16' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
@@ -173,6 +177,18 @@ li.ok::marker{color:var(--ok)} li.warn::marker{color:var(--warn)} li.bad::marker
 .foot{margin-top:24px;font-size:12px;color:var(--muted)}
 body.playing #app{height:100dvh;min-height:0}
 body.playing #gamewrap{flex:1;min-height:0}
+/* toque no celular: sem realce azul, sem lupa/menu ao segurar, sem zoom por toque duplo nos botões */
+button,a,.gstage{-webkit-tap-highlight-color:transparent}
+button{touch-action:manipulation}
+.gstage{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.gload{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#CDEAE5;color:var(--hud);font-family:var(--f-display);font-weight:800;font-size:19px}
+.gload i{width:46px;height:46px;border-radius:50%;border:5px solid rgba(14,74,79,.18);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ver{opacity:.7}
+/* celulares baixos (ex.: 360×640): tudo cabe sem rolar a página */
+@media (max-height:720px){body.playing .top{margin-top:4px;padding:6px 10px}#gamewrap{gap:6px;margin-top:6px}.gstage{min-height:280px}
+  .obj{min-height:0;padding:8px 10px}.obj .num{width:34px;height:34px;font-size:16px}.obj .tt{font-size:17px}.obj .how{font-size:13px}
+  .rxs{padding:6px 8px}.rxs .rxic{width:28px;height:28px;font-size:14px}.rxs .rxl{font-size:11.5px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head><body>
@@ -184,14 +200,14 @@ body.playing #gamewrap{flex:1;min-height:0}
     <span class="pill" id="casePill" hidden></span>
     <span class="pill" id="ptsPill"><span class="st">★</span><b id="pts">0</b></span>
     <button class="ghost" id="menuBtn" aria-label="Voltar ao menu">‹ Menu</button>
-    <button class="ghost ib" id="sndBtn" aria-label="Desligar som" aria-pressed="true"></button>
-    <button class="ghost" id="protoBtn">Tabela</button>
+    <button class="ghost ib" id="sndBtn" title="Som" aria-label="Desligar som" aria-pressed="true"></button>
+    <button class="ghost" id="protoBtn" title="Tabela de preparo">Tabela</button>
   </header>
   <main id="view"></main>
   <section id="gamewrap" hidden>
     <button class="rxs" id="rxStrip" aria-label="Abrir prescrição completa"></button>
     <div class="obj" id="objCard"></div>
-    <div class="gstage"><div id="game"></div><div id="gToast" aria-live="polite"></div></div>
+    <div class="gstage"><div id="game"></div><div class="gload" id="gLoad" hidden><i aria-hidden="true"></i>Preparando a sala…</div><div id="gToast" aria-live="polite"></div></div>
   </section>
   <div id="sheet" hidden></div>
   <div id="modal" hidden></div>
@@ -238,17 +254,6 @@ const SOROS=[
   {sol:'Ringer lactato',vol:1000,min:360,eq:'macro'},{sol:'SF 0,9%',vol:1000,min:720,eq:'macro'},
   {sol:'SF 0,9%',vol:250,min:90,eq:'micro'},{sol:'SG 5%',vol:100,min:60,eq:'micro'},{sol:'Ringer lactato',vol:500,min:120,eq:'macro'}
 ];
-const PAC=[
-  {n:'Maria Aparecida Souza',alt:'Maria Aparecida Santos',nasc:'12/03/1958'},
-  {n:'José Carlos Lima',alt:'José Carlos Lins',nasc:'04/09/1971'},
-  {n:'Ana Beatriz Ramos',alt:'Ana Beatriz Rocha',nasc:'27/11/1990'},
-  {n:'Antônio Ferreira da Silva',alt:'Antônio Pereira da Silva',nasc:'15/06/1949'},
-  {n:'Francisca de Oliveira Mota',alt:'Francisca de Oliveira Motta',nasc:'08/01/1983'},
-  {n:'Luiz Fernando Costa',alt:'Luiz Fernando Coutinho',nasc:'30/07/1966'},
-  {n:'Juliana Martins Rocha',alt:'Juliana Martins Rosa',nasc:'19/02/1995'},
-  {n:'Raimundo Nonato Alves',alt:'Raimundo Nonato Assis',nasc:'02/12/1954'}
-];
-
 /* ---------- utilidades ---------- */
 const $=s=>document.querySelector(s);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -267,7 +272,6 @@ const nm=d=>d.curto||d.nome;
 
 /* ---------- estado ---------- */
 const S={run:0,score:0,cases:[],i:0,results:[],inCase:false,consultUsed:false,mode:null};
-function setScore(){ $('#pts').textContent=S.score; }
 
 /* ---------- casos ---------- */
 function makeCase(tipo){
@@ -280,9 +284,6 @@ function makeCase(tipo){
     if(tipo==='ev_bol') c.inf={vol:c.spec.volInf||c.spec.vol,min:c.spec.tempo,eq:'macro'};
   }
   c.queixa=tipo==='soro'?pick(QUEIXA_SORO):(QUEIXA[c.key]||'');
-  const r=Math.random();
-  c.issue = r<.1 ? 'nome' : (r<.2 && tipo!=='soro') ? 'alergia' : null;
-  c.alergia = c.issue==='alergia' ? (c.d.alergia||c.d.nome) : null;
   return c;
 }
 function rxLine(c){
@@ -388,18 +389,8 @@ const GLS='fill="url(#gGlass)" stroke="#8FB0C2" stroke-width="2"';
 
 const ART={
   /* ----- sala de preparo ----- */
-  prepBg:()=>{let tiles='';for(let x=0;x<=1280;x+=80)tiles+=`<line x1="${x}" y1="0" x2="${x}" y2="470" stroke="#fff" stroke-opacity=".45" stroke-width="2"/>`;for(let y=0;y<=470;y+=80)tiles+=`<line x1="0" y1="${y}" x2="1280" y2="${y}" stroke="#fff" stroke-opacity=".45" stroke-width="2"/>`;
-    const shelf=(y)=>`<rect x="30" y="${y}" width="1220" height="18" rx="4" fill="url(#gShelf)" filter="url(#fSmall)"/><rect x="70" y="${y+18}" width="14" height="26" fill="#9FB1BB"/><rect x="1196" y="${y+18}" width="14" height="26" fill="#9FB1BB"/>`;
-    const bin=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="#FFFFFF" fill-opacity=".55" stroke="#fff" stroke-width="2"/>`;
-    return [1280,720,`<rect width="1280" height="720" fill="url(#gWall)"/>${tiles}
-     ${bin(46,70,404,166)}${bin(470,70,250,166)}${bin(880,70,330,166)}
-     ${bin(46,288,404,142)}${bin(470,288,370,142)}${bin(860,262,380,168)}
-     ${shelf(236)}${shelf(430)}
-     <rect y="470" width="1280" height="250" fill="url(#gCounter)"/><rect y="470" width="1280" height="10" fill="#fff" opacity=".8"/><rect y="700" width="1280" height="20" fill="#7E909A"/>`];},
   tray:()=>[640,230,`<rect x="10" y="10" width="620" height="210" rx="36" fill="url(#gTray)" filter="url(#fShadow)"/><rect x="28" y="26" width="584" height="178" rx="26" fill="#E3EBF0"/><rect x="28" y="26" width="584" height="10" rx="5" fill="#fff" opacity=".7"/>`],
   sharps:()=>[150,170,`<g filter="url(#fShadow)"><path d="M14,40 L136,40 L128,160 L22,160 Z" fill="url(#gSharps)"/><rect x="8" y="22" width="134" height="24" rx="6" fill="#F2C53D"/><rect x="40" y="26" width="70" height="12" rx="6" fill="#4A3A08"/><rect x="34" y="80" width="82" height="50" rx="6" fill="#fff"/><path d="M75,88 L95,122 L55,122 Z" fill="none" stroke="#D9403A" stroke-width="5" stroke-linejoin="round"/><rect x="72" y="98" width="6" height="12" fill="#D9403A"/><rect x="72" y="113" width="6" height="5" fill="#D9403A"/></g>`],
-  clip:()=>[140,180,`<g filter="url(#fShadow)"><rect x="10" y="16" width="120" height="156" rx="10" fill="url(#gWood)"/><rect x="20" y="30" width="100" height="134" rx="3" fill="#FFFDF4"/><rect x="44" y="6" width="52" height="24" rx="6" fill="url(#gSteel)"/>${[48,62,76,90,104,118,132].map((y,i)=>`<rect x="30" y="${y}" width="${i%3?80:60}" height="6" rx="3" fill="#C9D2D6"/>`).join('')}<rect x="30" y="140" width="40" height="14" rx="3" fill="#E8962A"/></g>`],
-  poster:()=>[190,140,`<g filter="url(#fShadow)"><rect x="8" y="8" width="174" height="124" rx="6" fill="#fff"/><rect x="8" y="8" width="174" height="30" rx="6" fill="#12A58C"/>${[50,64,78,92,106].map(y=>`<rect x="20" y="${y}" width="70" height="6" rx="3" fill="#C9D2D6"/><rect x="100" y="${y}" width="70" height="6" rx="3" fill="#C9D2D6"/>`).join('')}<circle cx="95" cy="8" r="6" fill="#D9403A"/></g>`],
   ampola:(liq='url(#gAmber)',broken=false,band='#E8962A')=>[48,124,`<g filter="url(#fSmall)">${broken?`<path d="M15,30 L18,24 L21,29 L25,23 L28,29 L31,25 L33,30 Z" fill="url(#gGlass)" stroke="#8FB0C2" stroke-width="1.5"/>`:`<ellipse cx="24" cy="12" rx="8" ry="11" ${GLS}/><rect x="19" y="21" width="10" height="11" ${GLS}/><rect x="17" y="26" width="14" height="4" fill="#D9403A"/>`}
     <rect x="8" y="30" width="32" height="88" rx="9" ${GLS}/><rect x="12" y="62" width="24" height="52" rx="6" fill="${liq}" opacity=".85"/><rect x="8" y="76" width="32" height="12" fill="${band}" opacity=".9"/><rect x="13" y="36" width="5" height="70" rx="2.5" fill="#fff" opacity=".7"/></g>`],
   frasco:(liq=false)=>[54,124,`<g filter="url(#fSmall)"><rect x="10" y="4" width="34" height="18" rx="4" fill="#E46A5E"/><rect x="10" y="4" width="34" height="7" rx="3" fill="#F49A90"/><rect x="14" y="22" width="26" height="10" fill="url(#gSteel)"/><rect x="6" y="32" width="42" height="86" rx="8" ${GLS}/>${liq?`<rect x="10" y="60" width="34" height="54" rx="5" fill="url(#gAmber)" opacity=".8"/>`:`<rect x="10" y="90" width="34" height="24" rx="4" fill="#FFFFFF"/><circle cx="18" cy="92" r="4" fill="#fff"/><circle cx="34" cy="91" r="5" fill="#fff"/>`}<rect x="8" y="52" width="38" height="24" fill="#fff" opacity=".9"/><rect x="12" y="58" width="28" height="4" fill="#E46A5E"/><rect x="12" y="66" width="20" height="3" fill="#B8C6CF"/><rect x="11" y="36" width="5" height="70" rx="2.5" fill="#fff" opacity=".6"/></g>`],
@@ -407,61 +398,18 @@ const ART={
   equipo:(micro=false)=>[110,110,`<g filter="url(#fSmall)"><rect x="6" y="6" width="98" height="98" rx="14" fill="#fff" fill-opacity=".9" stroke="#C9DADF" stroke-width="2"/><circle cx="55" cy="62" r="28" fill="none" stroke="#DCEFF8" stroke-width="7"/><circle cx="55" cy="62" r="28" fill="none" stroke="#9FBFD0" stroke-width="2"/><rect x="44" y="14" width="22" height="34" rx="6" ${GLS}/><path d="M55,6 L55,14" stroke="#7E8C96" stroke-width="4"/><rect x="74" y="78" width="18" height="22" rx="4" fill="#2D7FD3"/><rect x="12" y="10" width="30" height="16" rx="4" fill="${micro?'#8E5CC9':'#12A58C'}"/></g>`],
   /* ----- leito ----- */
   gloves:()=>[130,90,`<g filter="url(#fSmall)"><rect x="8" y="24" width="114" height="60" rx="8" fill="#fff"/><rect x="8" y="24" width="114" height="18" rx="8" fill="#2D7FD3"/><path d="M40,30 C40,6 60,4 66,18 C72,4 92,8 88,30 Z" fill="url(#gGlove)" stroke="#97B2C5" stroke-width="2"/><rect x="24" y="52" width="82" height="8" rx="4" fill="#C9D2D6"/><rect x="24" y="66" width="56" height="8" rx="4" fill="#C9D2D6"/></g>`],
-  glovesOpen:()=>[130,90,`<g filter="url(#fSmall)"><rect x="8" y="24" width="114" height="60" rx="8" fill="#fff" opacity=".6"/><rect x="8" y="24" width="114" height="18" rx="8" fill="#9DB8CF"/><rect x="24" y="52" width="82" height="8" rx="4" fill="#C9D2D6"/></g>`],
   garroteRoll:()=>[120,60,`<g filter="url(#fSmall)"><path d="M10,30 C30,6 90,6 110,30 C90,54 30,54 10,30 Z" fill="none" stroke="url(#gBand)" stroke-width="12"/><rect x="50" y="22" width="20" height="16" rx="4" fill="#22609F"/></g>`],
-  garrote:()=>[90,260,`<rect x="33" y="30" width="24" height="226" rx="6" fill="url(#gBand)"/><rect x="34" y="30" width="5" height="226" fill="#fff" opacity=".35"/><g filter="url(#fSmall)"><path d="M45,36 c-34,-34 -50,-4 -36,8 c10,8 26,-2 36,-8 z" fill="url(#gBand)"/><path d="M45,36 c34,-34 50,-4 36,8 c-10,8 -26,-2 -36,-8 z" fill="url(#gBand)"/><path d="M41,38 c-8,-18 -16,-28 -30,-36" stroke="url(#gBand)" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M49,38 c10,-16 22,-26 36,-34" stroke="url(#gBand)" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="45" cy="36" r="8" fill="#22609F"/></g>`],
   alcool:()=>[110,100,`<g filter="url(#fSmall)"><rect x="56" y="20" width="44" height="72" rx="8" fill="url(#gGlass)" stroke="#8FB0C2" stroke-width="2"/><rect x="66" y="8" width="24" height="14" rx="3" fill="#2D7FD3"/><rect x="58" y="44" width="40" height="24" fill="#fff"/><rect x="62" y="50" width="32" height="4" fill="#2D7FD3"/><rect x="62" y="58" width="22" height="4" fill="#9FB1BB"/><path d="M8,70 C4,52 22,44 32,52 C40,40 58,50 52,66 C60,74 50,90 38,86 C30,96 10,92 8,70 Z" fill="#fff" stroke="#C9DADF" stroke-width="2"/><path d="M18,66 C24,60 32,62 36,68" stroke="#B7E0F5" stroke-width="5" fill="none" stroke-linecap="round"/></g>`],
   algodao:()=>[80,60,`<g filter="url(#fSmall)"><path d="M10,36 C6,20 22,12 32,20 C40,6 60,14 56,30 C70,30 72,50 58,52 C50,62 26,60 22,52 C8,54 4,44 10,36 Z" fill="#fff" stroke="#D3DEE3" stroke-width="2"/></g>`],
   curativo:()=>[110,80,`<g filter="url(#fSmall)"><rect x="6" y="6" width="98" height="68" rx="12" fill="#FFFFFF" fill-opacity=".55" stroke="#fff" stroke-width="3"/><rect x="14" y="14" width="44" height="14" rx="3" fill="#fff"/><rect x="18" y="18" width="30" height="3" fill="#9FB1BB"/><rect x="18" y="23" width="22" height="3" fill="#9FB1BB"/><rect x="6" y="56" width="98" height="18" rx="4" fill="#DCE6EB" opacity=".9"/></g>`],
   extensor:()=>[160,70,`<g filter="url(#fSmall)"><path d="M24,35 C60,10 100,60 136,35" stroke="#F4FAFD" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M24,35 C60,10 100,60 136,35" stroke="#B9D3E0" stroke-width="2" fill="none"/><rect x="6" y="27" width="22" height="16" rx="4" fill="#fff" stroke="#9FBFD0" stroke-width="2"/><rect x="134" y="25" width="20" height="20" rx="4" fill="#D9403A"/><rect x="70" y="16" width="22" height="16" rx="4" fill="#2D7FD3"/></g>`],
-  wrist:(n)=>[34,66,`<rect x="4" y="4" width="26" height="58" rx="8" fill="#fff" stroke="#9FB1BB" stroke-width="2" filter="url(#fSmall)"/><rect x="4" y="4" width="26" height="12" rx="6" fill="${n?'#D9403A':'#2D7FD3'}"/>${[24,32,40,48].map(y=>`<rect x="9" y="${y}" width="16" height="3" fill="#9FB1BB"/>`).join('')}`],
   cath:(cor)=>[180,50,`<g filter="url(#fSmall)"><line x1="6" y1="25" x2="70" y2="25" stroke="url(#gSteel)" stroke-width="3" stroke-linecap="round"/><rect x="14" y="21" width="58" height="8" rx="3" fill="${cor}" opacity=".45"/><path d="M70,15 L104,17 L104,33 L70,35 Z" fill="${cor}"/><path d="M76,15 L84,3 L94,3 L92,16 Z M76,35 L84,47 L94,47 L92,34 Z" fill="${cor}" opacity=".9"/><rect x="104" y="18" width="50" height="14" rx="4" ${GLS}/><rect x="154" y="16" width="16" height="18" rx="4" fill="#fff" stroke="#9FBFD0" stroke-width="2"/></g>`],
   catIn:(cor)=>[110,80,`<g filter="url(#fSmall)"><path d="M30,32 L58,34 L58,46 L30,48 Z" fill="${cor}"/><path d="M34,32 L40,14 L52,14 L50,33 Z M34,48 L40,66 L52,66 L50,47 Z" fill="${cor}" opacity=".9"/><rect x="58" y="34" width="14" height="12" rx="3" fill="#fff" stroke="#9FBFD0" stroke-width="2"/></g>`],
   mandril:()=>[120,30,`<g filter="url(#fSmall)"><line x1="4" y1="15" x2="60" y2="15" stroke="url(#gSteel)" stroke-width="3"/><rect x="58" y="7" width="54" height="16" rx="4" ${GLS}/><rect x="62" y="10" width="20" height="10" rx="2" fill="#C8202A"/></g>`],
-  pole:()=>[80,620,`<rect x="34" y="20" width="10" height="600" fill="url(#gSteelV)"/><path d="M39,22 C8,22 8,4 20,4 M39,22 C70,22 70,4 58,4" stroke="#8E9CA6" stroke-width="5" fill="none" stroke-linecap="round"/>`],
   cross:()=>{const FAT=[[30,130,10],[70,170,12],[110,140,9],[150,186,11],[200,150,10],[240,190,9],[380,140,11],[420,180,10],[470,130,9],[500,175,12],[360,192,8],[40,190,9]];
     return [520,270,`<rect width="520" height="70" fill="url(#gWall)"/><rect y="70" width="520" height="14" fill="#F6C7A4"/><rect y="70" width="520" height="3" fill="#fff" opacity=".6"/><rect y="84" width="520" height="22" fill="url(#gDerm)"/><rect y="106" width="520" height="104" fill="url(#gFat)"/>${FAT.map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity=".35"/>`).join('')}<rect y="210" width="520" height="60" fill="url(#gMuscle)"/>${[222,236,250].map(y=>`<path d="M0,${y} C130,${y-6} 390,${y+6} 520,${y}" stroke="#fff" stroke-opacity=".18" stroke-width="3" fill="none"/>`).join('')}<circle cx="308" cy="127" r="24" fill="url(#gVeinX)" stroke="#2F3F86" stroke-width="2"/><ellipse cx="300" cy="119" rx="8" ry="5" fill="#fff" opacity=".35"/>`];},
-  crossIM:()=>{let fat='';for(let i=0;i<14;i++)fat+=`<circle cx="${20+i*37}" cy="${110+(i%3)*14}" r="${8+(i%4)}" fill="#fff" opacity=".35"/>`;
-    return [520,270,`<rect width="520" height="70" fill="url(#gWall)"/><rect y="70" width="520" height="12" fill="#F6C7A4"/><rect y="82" width="520" height="16" fill="url(#gDerm)"/><rect y="98" width="520" height="54" fill="url(#gFat)"/>${fat}<rect y="152" width="520" height="118" fill="url(#gMuscle)"/>${[170,195,220,245].map(y=>`<path d="M0,${y} C130,${y-6} 390,${y+6} 520,${y}" stroke="#fff" stroke-opacity=".18" stroke-width="3" fill="none"/>`).join('')}`];},
   needle:(len,cal,cor)=>{const k=2.4,x0=34,L=len*k,d=Math.max(2.2,cal*.5),y=16;return [140,32,`<g filter="url(#fSmall)"><path d="M${x0},${y-d/2} L${x0+L-d*3},${y-d/2} L${x0+L},${y+d/2} L${x0},${y+d/2} Z" fill="url(#gSteel)" stroke="#7E8C96" stroke-width=".8"/><path d="M4,${y-9} L24,${y-7} L${x0},${y-3.5} L${x0},${y+3.5} L24,${y+7} L4,${y+9} Z" fill="${cor}"/><rect x="2" y="${y-11}" width="6" height="22" rx="2" fill="${cor}"/></g>`];},
-  /* ----- braço do paciente (por tom de pele) ----- */
-  armBg:(t)=>[1280,720,`${`<defs>${skinGrad(t)}</defs>`}
-    <rect width="1280" height="720" fill="url(#gSheet)"/>${[120,300,520].map(y=>`<path d="M-20,${y} C300,${y-30} 700,${y+40} 1300,${y-10}" stroke="#B9CCD8" stroke-opacity=".35" stroke-width="18" fill="none"/>`).join('')}
-    <g transform="translate(40,120) scale(1.3)">
-     <path d="${ARM}" transform="translate(6,22)" fill="#46606B" opacity=".35" filter="url(#fBlur)"/>
-     ${FINGERS.map(([y,l])=>`<rect x="790" y="${y-10}" width="${l}" height="20" rx="10" fill="url(#sk)" stroke="${t.line}" stroke-width="2"/>`).join('')}
-     <path d="${ARM}" fill="url(#sk)" stroke="${t.line}" stroke-width="2.5"/>
-     <ellipse cx="770" cy="104" rx="46" ry="15" transform="rotate(-26 770 104)" fill="url(#sk)" stroke="${t.line}" stroke-width="2"/>
-     <clipPath id="ac"><path d="${ARM}"/></clipPath>
-     <g clip-path="url(#ac)">
-      <path d="M20,98 C160,86 270,94 335,112 C400,128 540,132 690,140" stroke="#fff" stroke-opacity=".25" stroke-width="16" fill="none" stroke-linecap="round"/>
-      <path d="M0,232 C140,240 260,232 335,216 C400,206 540,196 690,188" stroke="#000" stroke-opacity=".12" stroke-width="20" fill="none"/>
-      ${Object.values(VEINS).map(v=>`<path d="${v.d}" stroke="${t.vein}" stroke-width="10" opacity="${t.vOp}" fill="none" stroke-linecap="round"/><path d="${v.d}" transform="translate(0,-2)" stroke="#fff" stroke-width="3" opacity=".3" fill="none" stroke-linecap="round"/>`).join('')}
-      <path d="M346,120 C356,152 356,180 346,210" stroke="${t.line}" stroke-width="2.5" stroke-dasharray="5 6" fill="none" opacity=".7"/>
-      <path d="M716,150 C748,160 780,158 804,148" stroke="${t.line}" stroke-width="2" fill="none" opacity=".5"/>
-     </g>
-     <path d="M-30,60 L120,58 C130,120 130,200 120,250 L-30,252 Z" fill="url(#gGown)"/>${[[20,90],[70,130],[30,180],[90,210],[60,80]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="5" fill="#fff" opacity=".5"/>`).join('')}
-    </g>
-    <rect y="585" width="1280" height="135" fill="url(#gCounter)"/><rect y="585" width="1280" height="8" fill="#fff" opacity=".8"/><rect y="704" width="1280" height="16" fill="#7E909A"/>`],
-  /* ----- paciente em decúbito ventral (vista de cima) ----- */
-  proneBg:(t,hair,longo)=>[1280,720,`<defs>${skinGrad(t)}</defs>
-    <rect width="1280" height="720" fill="#CFE6EA"/><rect x="40" y="110" width="1220" height="460" rx="40" fill="url(#gSheet)" filter="url(#fShadow)"/>
-    <rect x="70" y="250" width="170" height="180" rx="40" fill="#fff" stroke="#DCE6EB" stroke-width="3"/>
-    <g stroke="${t.line}" stroke-width="2.5" fill="url(#sk)">
-     <path d="M790,255 C900,262 1040,272 1180,285 C1200,288 1200,330 1180,333 C1040,338 900,338 790,336 Z"/>
-     <path d="M790,425 C900,418 1040,408 1180,395 C1200,392 1200,350 1180,347 C1040,342 900,342 790,344 Z"/>
-     <path d="M630,245 C690,228 770,228 812,252 C842,290 842,390 812,428 C770,452 690,452 630,435 Z"/>
-     <path d="M290,200 C380,170 520,160 690,170 C720,172 730,200 700,206 C540,206 400,214 300,252 Z"/>
-     <path d="M290,480 C380,510 520,520 690,510 C720,508 730,480 700,474 C540,474 400,466 300,428 Z"/>
-     <path d="M260,225 C300,205 360,205 420,215 C520,228 600,240 650,248 L650,432 C600,440 520,452 420,465 C360,475 300,475 260,455 Z"/>
-     <rect x="222" y="312" width="44" height="56" rx="12"/>
-     <ellipse cx="168" cy="340" rx="62" ry="56"/>
-    </g>
-    <ellipse cx="160" cy="340" rx="60" ry="54" fill="${hair}"/>${longo?`<path d="M110,300 C70,330 70,360 112,382 L130,370 C110,350 110,330 130,312 Z" fill="${hair}"/>`:''}
-    <path d="M700,340 L812,340" stroke="${t.line}" stroke-width="2.5" opacity=".6"/>
-    <path d="M262,232 C320,215 420,222 520,236 C580,244 640,250 652,252 L652,428 C600,434 520,446 420,458 C330,468 290,462 262,448 Z" fill="url(#gGown)"/>${[[320,280],[400,320],[480,270],[560,360],[340,400],[450,420],[600,300],[520,410]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="6" fill="#fff" opacity=".45"/>`).join('')}
-    <path d="M1000,245 C1080,240 1180,250 1270,250 L1270,440 C1180,440 1080,446 1000,440 C985,380 985,300 1000,245 Z" fill="url(#gDrape)" filter="url(#fSmall)"/>
-    <rect y="585" width="1280" height="135" fill="url(#gCounter)"/><rect y="585" width="1280" height="8" fill="#fff" opacity=".8"/><rect y="704" width="1280" height="16" fill="#7E909A"/>`]
+
 };
 const ARM='M-10,78 C120,66 250,72 330,92 C390,106 540,110 688,124 C720,116 770,112 806,118 C820,140 820,175 806,196 C770,203 720,199 688,190 C540,200 390,210 330,220 C250,238 120,246 -10,236 Z';
 const VEINS={
@@ -485,22 +433,22 @@ function svgTex(scene,key,[w,h,inner]){
     img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${DEFS}${inner}</svg>`);});
 }
 function baseTextures(scene){
-  const L=[['prepBg',ART.prepBg()],['tray',ART.tray()],['sharps',ART.sharps()],['clip',ART.clip()],['poster',ART.poster()],
+  const L=[['tray',ART.tray()],['sharps',ART.sharps()],
     ['ampola',ART.ampola()],['ampolaQ',ART.ampola('url(#gAmber)',true)],['abd',ART.ampola('url(#gSaline)',false,'#2D7FD3')],['abdQ',ART.ampola('url(#gSaline)',true,'#2D7FD3')],
     ['kit',ART.ampola('url(#gSaline)',false,'#12A58C')],['kitQ',ART.ampola('url(#gSaline)',true,'#12A58C')],['ampolaV',ART.ampola('none',true)],
     ['frasco',ART.frasco()],['frascoL',ART.frasco(true)],['bag',ART.bag()],['equipo',ART.equipo()],['equipoMi',ART.equipo(true)],
-    ['gloves',ART.gloves()],['glovesOpen',ART.glovesOpen()],['garroteRoll',ART.garroteRoll()],['garrote',ART.garrote()],['alcool',ART.alcool()],['algodao',ART.algodao()],
-    ['curativo',ART.curativo()],['extensor',ART.extensor()],['mandril',ART.mandril()],['pole',ART.pole()],['cross',ART.cross()],['crossIM',ART.crossIM()],
-    ['wrist',ART.wrist(false)],['wristR',ART.wrist(true)]];
+    ['gloves',ART.gloves()],['garroteRoll',ART.garroteRoll()],['alcool',ART.alcool()],['algodao',ART.algodao()],
+    ['curativo',ART.curativo()],['extensor',ART.extensor()],['mandril',ART.mandril()],['cross',ART.cross()]];
   for(const g in CATS){L.push(['cat'+g,ART.cath(CATS[g].cor)]);L.push(['catIn'+g,ART.catIn(CATS[g].cor)]);}
   for(const k in NEEDLES){const n=NEEDLES[k];L.push(['nd_'+k,ART.needle(n.len,n.cal,n.cor)]);}
   return Promise.all(L.map(([k,a])=>svgTex(scene,k,a)));
 }
 
 /* ================= MOTOR: utilidades do jogo (Phaser 3) ================= */
-const W=1280,H=720;
 const HEX=s=>Phaser.Display.Color.HexStringToColor(s).color;
 const FONT_B='"Baloo 2", "Trebuchet MS", sans-serif', FONT='Nunito, system-ui, sans-serif';
+/* encolhe um texto para caber na largura (rótulos dentro da bolsa) */
+const fitW=(t,w)=>{if(t.width>w)t.setScale(w/t.width);return t;};
 function T(s,x,y,str,size=16,color='#0F3238',o={}){return s.add.text(x,y,str,{fontFamily:o.display?FONT_B:FONT,fontSize:size+'px',fontStyle:o.w||'800',color,align:o.align||'center',wordWrap:o.wrap?{width:o.wrap}:undefined,stroke:o.stroke,strokeThickness:o.st||0}).setOrigin(o.ox??.5,o.oy??.5);}
 function button(s,x,y,label,cb,{w=210,h=50,color=0x12A58C,dark=0x0B7564,size=19}={}){
   const g=s.add.graphics();
@@ -576,7 +524,6 @@ function drawFace(s,x,y,p,r=52){
 
 /* ---------- HUD em HTML sobre o canvas ---------- */
 let CUR=null;
-function hud(stage,obj){$('#gStage').textContent=stage;$('#gObj').innerHTML=obj;}
 /* ---------- feedback: som (WebAudio, sem arquivos), vibração e flashes ---------- */
 const FX={on:true,last:{}};try{FX.on=localStorage.getItem('sm_som')!=='0';}catch(e){}
 let AC=null;
@@ -646,31 +593,6 @@ function setScore(delta){
 }
 function modal(html,{wide=false}={}){const m=$('#modal');m.hidden=false;m.innerHTML=`<div class="mbox" style="${wide?'':'max-width:520px'}">${html}</div>`;return m;}
 function closeM(){$('#modal').hidden=true;$('#modal').innerHTML='';}
-function rxHTML(c){return `<div class="rx" style="transform:none"><h4>Prescrição médica</h4><dl><dt>Paciente</dt><dd>${c.p.n}</dd><dt>Nasc.</dt><dd>${c.p.nasc} (${c.p.idade} anos)</dd><dt>Leito</dt><dd>${c.leito}</dd><dt>Horário</dt><dd>${c.hora}</dd><dt>Motivo</dt><dd>${c.queixa}</dd></dl><div class="item">${rxLine(c)}</div></div>`;}
-function showRx(c,bedside){
-  modal(`<div class="mhead"><h2>Prescrição</h2><button class="ghost" id="mx">Fechar</button></div>${rxHTML(c)}
-   ${bedside?`<p class="unit" style="margin-top:14px">Se algo não confere com o paciente, não administre.</p><div class="row"><button class="primary" id="susp" style="background:var(--bad);box-shadow:0 4px 0 #8E2420">Suspender e comunicar o enfermeiro</button></div>`:''}`);
-  $('#mx').onclick=closeM; if(bedside) $('#susp').onclick=()=>{closeM();bedside();};
-}
-function showWrist(c){
-  const nomeP=c.issue==='nome'?c.p.alt:c.p.n;
-  modal(`<div class="mhead"><h2>Pulseira</h2><button class="ghost" id="mx">Fechar</button></div>
-    <div class="pulseira"><div class="clip"></div><div class="pin"><span style="color:var(--muted)">IDENTIFICAÇÃO DO PACIENTE</span><b>${nomeP}</b>Nasc. ${c.p.nasc} · Leito ${c.leito}<br>${c.alergia?`<span class="alg yes">ALERGIA: ${c.alergia.toUpperCase()}</span>`:`<span class="alg no">Nega alergias</span>`}</div><div class="clip"></div></div>
-    <p class="unit">Compare com a prescrição: nome completo, data de nascimento, leito e alergias.</p>`);
-  $('#mx').onclick=closeM;
-}
-
-/* ---------- arrastáveis com posição de origem ---------- */
-function draggable(s,obj,{home=true}={}){
-  obj.setInteractive({draggable:true,useHandCursor:true});
-  obj.homeX=obj.x;obj.homeY=obj.y;obj.moved=false;
-  obj.on('pointerdown',()=>{obj.moved=false;});
-  obj.on('dragstart',()=>{obj.setDepth(60);obj.onDragStart&&obj.onDragStart();});
-  obj.on('drag',(p,x,y)=>{obj.x=x;obj.y=y;obj.moved=true;obj.onDrag&&obj.onDrag(p);});
-  obj.on('dragend',p=>{obj.setDepth(obj.baseDepth||10);const keep=obj.onDrop?obj.onDrop(p):false;if(!keep&&home&&obj.active)s.tweens.add({targets:obj,x:obj.homeX,y:obj.homeY,duration:260,ease:'Back.Out'});});
-  obj.on('pointerup',()=>{if(!obj.moved&&obj.onTap)obj.onTap();});
-  return obj;
-}
 /* um objeto que responde a toque (onTap) e a arrastar (onDrop recebe o ponteiro; devolva true se o objeto já foi reposicionado) */
 function dragify(s,o,onTap,onDrop){o.removeAllListeners('pointerup');o.removeAllListeners('pointerdown');s.input.setDraggable(o);o.homeX=o.x;o.homeY=o.y;o.moved=false;
   o.on('pointerdown',()=>{o.moved=false;});
@@ -719,152 +641,8 @@ function handUpdate(s,o){const H=nurseHand(s);if(!o){H.C.setVisible(false);retur
     const it=o.item;if(it){let ic;if(it.draw){ic=s.add.graphics();it.draw(ic);}else{ic=s.add.image(0,0,it.tex);ic.setScale(Math.min(1.4,74/ic.width,56/ic.height));if(it.rot)ic.setRotation(it.rot);}H.item.add(ic);}}
   H.C.setPosition(o.x,o.y).setVisible(true);}
 /* onde a mão fica: no ponto tocado (um pouco acima do dedo); se o toque foi na gaveta, logo acima dela */
-function handPos(s){const p=s.input.activePointer;if(!p||(!p.x&&!p.y))return {x:360,y:DRAWER_Y-120};
-  return p.y>DRAWER_Y-40?{x:Phaser.Math.Clamp(p.x,70,650),y:DRAWER_Y-120}:{x:p.x,y:p.y-44};}
-function goHome(s,obj){s.tweens.add({targets:obj,x:obj.homeX,y:obj.homeY,duration:260,ease:'Back.Out'});}
-
-/* ---------- MINIGAME: aspirar (puxar o êmbolo) ---------- */
-function aspirePanel(s,syr,srcName,maxMl,cb){
-  const cap=syr.it.cap,step={3:.1,5:.2,10:.5,20:1}[cap];
-  const C=s.add.container(0,0).setDepth(1000);
-  const dim=s.add.rectangle(640,360,W,H,0x0A282C,.6).setInteractive();C.add(dim);
-  const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(150,120,980,440,26);pg.fillStyle(0xE6F3F1,1);pg.fillRoundedRect(150,120,980,70,{tl:26,tr:26,bl:0,br:0});C.add(pg);
-  C.add(T(s,640,155,`Aspirar de ${srcName}`,28,'#0F3238',{display:true}));
-  C.add(T(s,640,215,`Disponível: ${fmt(Math.round(maxMl*10)/10)} ml para esta seringa de ${cap} ml · arraste o êmbolo`,16,'#557178',{w:'700'}));
-  const k=600/SYR[cap][0], L=600, x0=640-L/2-60, y=340;
-  const g=s.add.graphics();g.x=640-60;g.y=y;C.add(g);
-  const ticks=s.add.graphics();C.add(ticks);
-  ticks.lineStyle(2,0x557178,1);
-  const major=cap===20?5:1;
-  for(let v=0;v<=cap+1e-6;v+=step){const x=x0+v/cap*L,isM=Math.abs(v/major-Math.round(v/major))<1e-6;ticks.lineBetween(x,y+SYR[cap][1]*k/2+6,x,y+SYR[cap][1]*k/2+(isM?24:14));if(isM)C.add(T(s,x,y+SYR[cap][1]*k/2+40,String(Math.round(v)),15,'#557178'));}
-  let v=0; const base=syr.it.vol;
-  const reading=T(s,640,450,'',30,'#2D7FD3',{display:true});C.add(reading);
-  const sub=T(s,640,482,'',15,'#557178');C.add(sub);
-  const liq=syr.it.drugMl()>0?LIQ_DRUG:LIQ_DIL;
-  const draw=()=>{drawSyr(g,cap,base+v,syr.it.needle,v>0&&srcName.match(/ABD|kit/i)&&!syr.it.drugMl()?LIQ_DIL:liq,k);reading.setText(`+ ${fmt(Math.round(v*10)/10)} ml`);sub.setText(`Total na seringa: ${fmt(Math.round((base+v)*10)/10)} ml`);
-    knob.x=x0+(base+v)/cap*L+5*k+L+6*k+3.5*k;};
-  const knob=s.add.circle(0,y,30,0x2D7FD3,.25).setStrokeStyle(4,0x2D7FD3);C.add(knob);
-  const hand=T(s,0,y-60,'⇠ puxe ⇢',14,'#2D7FD3');C.add(hand);
-  knob.setInteractive({draggable:true,useHandCursor:true});
-  knob.on('drag',(p,x)=>{const raw=(x-(5*k+L+6*k+3.5*k)-x0)/L*cap-base;v=Math.max(0,Math.min(maxMl,Math.round(raw/step)*step));draw();hand.x=knob.x;});
-  draw();hand.x=knob.x;
-  const close=()=>C.destroy();
-  C.add(button(s,520,520,'Cancelar',()=>{close();cb(0);},{w:180,color:0x8EA3A8,dark:0x5E7378}));
-  C.add(button(s,760,520,'Aspirar',()=>{close();cb(v);},{w:220}));
-  return C;
-}
-
-/* ---------- MINIGAME: injetar devagar (empurrar o êmbolo) ---------- */
-function injectPanel(s,{cap,vol,needle,im,face,p},cb){
-  const C=s.add.container(0,0).setDepth(1000);
-  C.add(s.add.rectangle(640,360,W,H,0x0A282C,.6).setInteractive());
-  const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(110,90,1060,540,26);C.add(pg);
-  C.add(T(s,640,130,im?'Injete no músculo':'Injete pelo acesso venoso',28,'#0F3238',{display:true}));
-  C.add(T(s,640,168,'Arraste o êmbolo para a direita, devagar. Observe o medidor e o paciente.',16,'#557178',{w:'700'}));
-  const k=Math.min(4,520/SYR[cap][0]);
-  const g=s.add.graphics();g.x=560;g.y=330;g.scaleX=-1;C.add(g);
-  const tg=s.add.graphics();C.add(tg);
-  const L=SYR[cap][0]*k, tipX=560+L/2+(needle?NEEDLES[needle].len*2.2*k*.35:0)+20;
-  if(im){tg.fillStyle(HEX(PELE[p.pele].mid),1);tg.fillRoundedRect(tipX+10,250,220,160,30);tg.fillStyle(0xE7807C,1);tg.fillRoundedRect(tipX+60,290,170,110,24);}
-  else{tg.fillStyle(0xF4FAFD,1);tg.fillRect(tipX-10,322,90,16);tg.fillStyle(HEX(PELE[p.pele].mid),1);tg.fillRoundedRect(tipX+70,270,200,120,50);tg.fillStyle(0xE58BA7,1);tg.fillRoundedRect(tipX+80,318,40,24,6);}
-  const fc=drawFace(s,1060,210,p,46);C.add(fc);
-  // medidor
-  const mx=330,mw=620,my=500; const mg=s.add.graphics();C.add(mg);
-  const zones=[[0,.35,0x1E9A55,'Lento'],[.35,.65,0xE8962A,'Médio'],[.65,1,0xD9403A,'Rápido']];
-  zones.forEach(([a,b,col,l])=>{mg.fillStyle(col,.9);mg.fillRect(mx+a*mw,my,(b-a)*mw,26);C.add(T(s,mx+(a+b)/2*mw,my+13,l,15,'#fff'));});
-  const mk=s.add.triangle(mx,my-10,0,0,20,0,10,16,0x0F3238);C.add(mk);
-  const info=T(s,640,560,'',15,'#557178');C.add(info);
-  const goodMax=im?.3:.2; // fração por segundo considerada lenta
-  let prog=0,fast=0,drag=false,lastX=0,hist=[[performance.now(),0]];
-  const draw=()=>{drawSyr(g,cap,vol*(1-prog),needle,LIQ_DRUG,k);};draw();
-  const zone=s.add.rectangle(640,330,1000,220,0,0).setInteractive({useHandCursor:true});C.add(zone);
-  zone.on('pointerdown',pp=>{drag=true;lastX=pp.x;});
-  const up=()=>{drag=false;}; s.input.on('pointerup',up);
-  const mv=pp=>{if(!drag||prog>=1)return;const dx=pp.x-lastX;lastX=pp.x;if(dx<=0)return;const dp=dx/(L*1.0);const now=performance.now();
-    const sp=speed(now);prog=Math.min(1,prog+dp);if(sp>goodMax*1.15)fast+=dp;hist.push([now,prog]);draw();
-    if(prog>=1)finish();};
-  s.input.on('pointermove',mv);
-  function speed(now){while(hist.length>2&&now-hist[0][0]>600)hist.shift();const [t0,p0]=hist[0];return (prog-p0)/Math.max(.15,(now-t0)/1000);}
-  const tick=s.time.addEvent({delay:80,loop:true,callback:()=>{const sp=speed(performance.now());const pos=Math.min(1,sp/(goodMax*3));mk.x=mx+pos*mw;
-    fc.setMood(sp>goodMax*1.15?'pain':'calm');const secs=Math.round(prog*(im?60:150));info.setText(`Tempo simulado: ${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}  ·  ${fmt(Math.round(vol*prog*10)/10)} de ${fmt(vol)} ml`);}});
-  function finish(){tick.remove();s.input.off('pointermove',mv);s.input.off('pointerup',up);
-    s.time.delayedCall(400,()=>{C.destroy();cb(Math.max(0,1-fast));});}
-  return C;
-}
-
-/* ---------- MINIGAME: punção venosa (ângulo + avançar e parar no refluxo) ---------- */
-function puncturePanel(s,gauge,cb){
-  const C=s.add.container(0,0).setDepth(1000);
-  C.add(s.add.rectangle(640,360,W,H,0x0A282C,.6).setInteractive());
-  const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(260,60,760,600,26);C.add(pg);
-  C.add(T(s,640,98,'Punção venosa',28,'#0F3238',{display:true}));
-  C.add(T(s,640,132,'Ajuste o ângulo, segure para avançar e solte quando o sangue aparecer na câmara.',15,'#557178',{w:'700',wrap:700}));
-  const K=1.2, ox=328, oy=158;
-  C.add(s.add.image(ox,oy,'cross').setOrigin(0).setScale(K));
-  const P=(u,v)=>({x:ox+u*K,y:oy+v*K});
-  const E=P(170,70);
-  const cath=s.add.container(E.x,E.y);C.add(cath);
-  const inner=s.add.container(0,0);cath.add(inner);
-  const ng=s.add.graphics();inner.add(ng);
-  let ang=45,up=true,adv=-16,flash=false,state='aim',hold=false,wasIn=false;
-  const col=HEX(CATS[gauge].cor);
-  const drawC=()=>{ng.clear();const kk=K;ng.fillStyle(0x9AA8B2,1);ng.fillRect(-118*kk,-2*kk,118*kk,4*kk);
-    ng.fillStyle(0xffffff,1);ng.fillTriangle(0,0,-14*kk,up?-4*kk:4*kk,-14*kk,0);
-    ng.fillStyle(col,.5);ng.fillRect(-104*kk,-4*kk,96*kk,8*kk);ng.fillStyle(col,1);ng.fillRoundedRect(-160*kk,-10*kk,46*kk,20*kk,5);
-    ng.fillStyle(0xF4FAFD,1);ng.fillRoundedRect(-194*kk,-8*kk,34*kk,16*kk,4);ng.lineStyle(2,0x9FBFD0,1);ng.strokeRoundedRect(-194*kk,-8*kk,34*kk,16*kk,4);
-    if(flash){ng.fillStyle(0xC8202A,1);ng.fillRoundedRect(-190*kk,-4*kk,26*kk,8*kk,2);}
-    cath.rotation=ang*Math.PI/180;inner.x=adv*K;};
-  drawC();
-  const angT=T(s,640,500,'',22,'#0F3238',{display:true});C.add(angT);
-  const sx0=420,sw=440,sy=536; const tr=s.add.graphics();tr.fillStyle(0xD3E3E5,1);tr.fillRoundedRect(sx0,sy-6,sw,12,6);tr.fillStyle(0x1E9A55,.35);tr.fillRect(sx0+(15-5)/55*sw,sy-6,(15)/55*sw,12);C.add(tr);
-  const knob=s.add.circle(sx0+(ang-5)/55*sw,sy,16,0x2D7FD3).setStrokeStyle(4,0xffffff).setInteractive({draggable:true,useHandCursor:true});C.add(knob);
-  knob.on('drag',(p,x)=>{if(state!=='aim')return;x=Math.max(sx0,Math.min(sx0+sw,x));knob.x=x;ang=Math.round(5+(x-sx0)/sw*55);angT.setText(`Ângulo: ${ang}°`);drawC();});
-  angT.setText(`Ângulo: ${ang}°`);
-  const bev=button(s,500,600,'Bisel: para cima',()=>{if(state!=='aim')return;up=!up;bev.setLabel(up?'Bisel: para cima':'Bisel: para baixo');drawC();},{w:220,color:0x557178,dark:0x3A4E53,size:17});C.add(bev);
-  const go=button(s,780,600,'Segure para avançar',null,{w:280,color:0x2D7FD3,dark:0x1F5EA3,size:18});C.add(go);
-  go.on('pointerdown',()=>{if(state==='aim')state='adv';if(state==='adv')hold=true;});
-  const rel=()=>{if(!hold)return;hold=false;if(state!=='adv')return;const t=tip();if(inV(t)){end(true,'ok');}};
-  go.on('pointerup',rel);go.on('pointerout',rel);s.input.on('pointerup',rel);
-  const tip=()=>{const a=ang*Math.PI/180;return {u:170+adv*Math.cos(a),v:70+adv*Math.sin(a)};};
-  const inV=t=>Math.hypot(t.u-308,t.v-127)<24;
-  const ev=s.time.addEvent({delay:16,loop:true,callback:()=>{if(state!=='adv'||!hold)return;adv+=0.95;const t=tip();const iv=inV(t);
-    if(iv){flash=true;wasIn=true;} if(wasIn&&!iv){end(false,'transfix');return;} if(adv>235){end(false,'miss');return;} drawC();}});
-  function end(ok,why){state='done';ev.remove();s.input.off('pointerup',rel);drawC();
-    const msg=ok?'Refluxo de sangue na câmara!':why==='transfix'?'Atravessou a veia: hematoma.':'Não atingiu a veia.';
-    C.add(T(s,640,460,msg,24,ok?'#1E9A55':'#D9403A',{display:true}));
-    s.time.delayedCall(1100,()=>{C.destroy();cb({ok,why,ang,up});});}
-  return C;
-}
-
-/* ---------- MINIGAME: ângulo IM ---------- */
-function imAnglePanel(s,needle,cb){
-  const C=s.add.container(0,0).setDepth(1000);
-  C.add(s.add.rectangle(640,360,W,H,0x0A282C,.6).setInteractive());
-  const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(260,60,760,600,26);C.add(pg);
-  C.add(T(s,640,98,'Introduza a agulha',28,'#0F3238',{display:true}));
-  C.add(T(s,640,132,'Gire a seringa até o ângulo que alcança o músculo e toque em Inserir.',15,'#557178'));
-  const K=1.2,ox=328,oy=158; C.add(s.add.image(ox,oy,'crossIM').setOrigin(0).setScale(K));
-  const E={x:ox+260*K,y:oy+70*K};
-  const sy=s.add.container(E.x,E.y);C.add(sy);const g=s.add.graphics();sy.add(g);
-  const n=NEEDLES[needle]||NEEDLES['30x7']; const nl=n.len*3.2*K;
-  let ang=40,ins=0;
-  const draw=()=>{g.clear();const kk=K;g.fillStyle(0x9AA8B2,1);g.fillRect(-nl+ins*nl,-2,nl,4);
-    g.fillStyle(HEX(n.cor),1);g.fillRoundedRect(-nl+ins*nl-22,-7,22,14,3);
-    g.fillStyle(0xF2F9FD,1);g.fillRoundedRect(-nl+ins*nl-22-170,-16,170,32,4);g.lineStyle(2,0x8FB0C2,1);g.strokeRoundedRect(-nl+ins*nl-192,-16,170,32,4);
-    g.fillStyle(LIQ_DRUG,.75);g.fillRect(-nl+ins*nl-120,-13,96,26);
-    sy.rotation=ang*Math.PI/180;};
-  draw();
-  const angT=T(s,640,520,`Ângulo: ${ang}°`,22,'#0F3238',{display:true});C.add(angT);
-  const sx0=420,sw=440,yy=556;const tr=s.add.graphics();tr.fillStyle(0xD3E3E5,1);tr.fillRoundedRect(sx0,yy-6,sw,12,6);C.add(tr);
-  const knob=s.add.circle(sx0+(ang-10)/80*sw,yy,16,0x2D7FD3).setStrokeStyle(4,0xffffff).setInteractive({draggable:true,useHandCursor:true});C.add(knob);
-  let done=false;
-  knob.on('drag',(p,x)=>{if(done)return;x=Math.max(sx0,Math.min(sx0+sw,x));knob.x=x;ang=Math.round(10+(x-sx0)/sw*80);angT.setText(`Ângulo: ${ang}°`);draw();});
-  C.add(button(s,640,612,'Inserir',()=>{if(done)return;done=true;s.tweens.addCounter({from:0,to:1,duration:600,onUpdate:tw=>{ins=tw.getValue();draw();},onComplete:()=>{
-    const depth=Math.sin(ang*Math.PI/180)*n.len*3.2; const layer=depth>82?'músculo':depth>28?'subcutâneo':'derme';
-    C.add(T(s,640,470,`A ponta da agulha está no ${layer}`,22,layer==='músculo'?'#1E9A55':'#D9403A',{display:true}));
-    s.time.delayedCall(1100,()=>{C.destroy();cb({ang,layer});});}});},{w:220}));
-  return C;
-}
+function handPos(s){const p=s.input.activePointer;if(!p||(!p.x&&!p.y))return {x:360,y:DRAWER_Y-190};
+  return p.y>DRAWER_Y-40?{x:Phaser.Math.Clamp(p.x,70,650),y:DRAWER_Y-190}:{x:p.x,y:p.y-44};}
 
 /* ================= VERSÃO MOBILE (retrato) ================= */
 const GW=720, GH=1120, DRAWER_Y=900;
@@ -944,7 +722,6 @@ class Guide{
 function rxStrip(c){$('#rxStrip').innerHTML=`<span class="rxic">Rx</span><span class="rxt"><div class="rxp">${c.p.n} · Leito ${c.leito} · ${c.hora}</div><div class="rxl">${rxLine(c)}</div></span><span class="more">›</span>`;$('#rxStrip').onclick=()=>showRx(c);}
 function rxHTML(c){return `<div class="rx"><h4>Prescrição médica</h4><dl><dt>Paciente</dt><dd>${c.p.n}</dd><dt>Nasc.</dt><dd>${c.p.nasc} (${c.p.idade} anos)</dd><dt>Leito</dt><dd>${c.leito}</dd><dt>Horário</dt><dd>${c.hora}</dd><dt>Motivo</dt><dd>${c.queixa}</dd></dl><div class="item">${rxLine(c)}</div></div>`;}
 function showRx(c){modal(`<div class="mhead"><h2>Prescrição</h2><button class="ghost" id="mx">Fechar</button></div>${rxHTML(c)}`);$('#mx').onclick=closeM;}
-function hint(){}
 
 /* ---------- gaveta de materiais (rodapé do canvas) ---------- */
 function makeDrawer(s,items,onTap){
@@ -1057,18 +834,18 @@ class PrepS extends Phaser.Scene{
     this.guide=new Guide(this,[['prep','sol','Separe a solução prescrita',`Confira na prescrição do topo e toque na bolsa certa.`,null,{g:'pegar',short:`${c.soro.sol} ${c.soro.vol} ml`}],['prep','eq','Separe o equipo',`Toque no equipo indicado na prescrição (macro ou microgotas).`,null,{g:'pegar',short:`Equipo ${c.soro.eq==='macro'?'macrogotas':'microgotas'}`}],['prep','levar','Leve a bandeja ao leito','Toque em Levar ao leito.']]);
     let sols=[[c.soro.sol,c.soro.vol]];shuffle(SOL_POOL).forEach(a=>{if(sols.length<4&&!sols.some(b=>b[0]===a[0]&&b[1]===a[1]))sols.push(a);});sols=shuffle(sols);
     this.srcs=[];
-    sols.forEach(([sol,vol],i)=>{const x=105+i*170,y=220;const o=this.bagC(sol,vol,x,y);o.kind='bag';this.srcs.push(o);});
-    [false,true].forEach((mi,i)=>{const x=220+i*280,y=510;const o=s.add.container(x,y,[s.add.image(0,0,mi?'equipoMi':'equipo').setScale(1.3),T(s,0,84,mi?'Microgotas':'Macrogotas',22,'#0F3238')]).setSize(150,170);o.kind='eq';o.micro=mi;this.srcs.push(o);});
+    sols.forEach(([sol,vol],i)=>{const x=105+i*170,y=196;const o=this.bagC(sol,vol,x,y);o.kind='bag';this.srcs.push(o);});
+    [false,true].forEach((mi,i)=>{const x=220+i*280,y=510;const o=s.add.container(x,y-5,[s.add.image(0,0,mi?'equipoMi':'equipo').setScale(1.1),T(s,0,74,mi?'Microgotas':'Macrogotas',22,'#0F3238')]).setSize(150,160);o.kind='eq';o.micro=mi;this.srcs.push(o);});
     this.input.dragDistanceThreshold=12;
     this.srcs.forEach(o=>{o.setInteractive({useHandCursor:true});o.home={x:o.x,y:o.y};
       dragify(this,o,()=>this.toggle(o),p=>{const toTray=p.y>640;if(toTray!==!!o.onTray)this.toggle(o);else if(o.onTray)this.layout();else this.tweens.add({targets:o,x:o.home.x,y:o.home.y,duration:240,ease:'Back.Out'});return true;});});
     this.go=button(s,360,1060,'Levar ao leito ▶',()=>{if(!this.guide.can('levar'))return;this.finish();},{w:420,h:80,size:28});
     this.hl=s.add.graphics().setDepth(70);
   }
-  bagC(sol,vol,x,y){const sc={100:.85,250:.95,500:1.05,1000:1.15}[vol];return this.add.container(x,y,[this.add.image(0,0,'bag').setScale(sc),T(this,0,-22*sc,sol,Math.round(17*sc),'#fff',{display:true}),T(this,0,4*sc,vol+' ml',Math.round(17*sc),'#fff'),T(this,0,115*sc-6,`${sol}\n${vol} ml`,24,'#0F3238')]).setSize(120*sc,200*sc);}
+  bagC(sol,vol,x,y){const sc={100:.85,250:.95,500:1.05,1000:1.15}[vol];const o=this.add.container(x,y,[this.add.image(0,0,'bag').setScale(sc),fitW(T(this,0,-22*sc,sol,Math.round(17*sc),'#fff',{display:true}),78*sc),T(this,0,4*sc,vol+' ml',Math.round(17*sc),'#fff'),T(this,0,140,`${sol}\n${vol} ml`,23,'#0F3238')]).setSize(120*sc,200*sc);o.sol=sol;o.vol=vol;return o;}
   toggle(o){const c=this.c;
     if(o.onTray){o.onTray=false;this.tray=this.tray.filter(x=>x!==o);this.tweens.add({targets:o,x:o.home.x,y:o.home.y,duration:250});this.layout();return;}
-    const ok=o.kind==='bag'?(o.list[1].text===c.soro.sol&&o.list[2].text===c.soro.vol+' ml'):o.micro===(c.soro.eq==='micro');
+    const ok=o.kind==='bag'?(o.sol===c.soro.sol&&o.vol===c.soro.vol):o.micro===(c.soro.eq==='micro');
     const step=o.kind==='bag'?'sol':'eq';
     if(!this.guide.can(step))return;
     const wrongMsg=o.kind==='bag'?`Não confere com a prescrição: ${c.soro.sol} ${c.soro.vol} ml. Devolva (toque nela ou arraste de volta).`:`A prescrição pede equipo de ${c.soro.eq==='macro'?'macrogotas':'microgotas'}. Devolva e pegue o certo.`;
@@ -1080,9 +857,9 @@ class PrepS extends Phaser.Scene{
   update(t){const g=this.hl;g.clear();if(!hlOn()||!this.guide)return;const a=.4+.4*Math.sin(t/180);g.lineStyle(6,0xFFC43D,a);
     this.guide.ready().forEach(c=>{if(c.id==='sol')g.strokeRoundedRect(28,80,664,280,20);if(c.id==='eq')g.strokeRoundedRect(28,440,664,155,20);if(c.id==='levar')g.strokeRoundedRect(145,1015,430,95,20);});}
   finish(){const c=this.c,R=this.R;const bag=this.tray.find(o=>o.kind==='bag'),eq=this.tray.find(o=>o.kind==='eq');
-    if(LEVEL==='treino'){const bOk=bag&&bag.list[1].text===c.soro.sol&&bag.list[2].text===c.soro.vol+' ml',eOk=eq&&eq.micro===(c.soro.eq==='micro');
+    if(LEVEL==='treino'){const bOk=bag&&bag.sol===c.soro.sol&&bag.vol===c.soro.vol,eOk=eq&&eq.micro===(c.soro.eq==='micro');
       if(!bOk||!eOk){toast(!bag||!eq?'Falta material na bandeja.':'Há um item errado na bandeja: devolva e pegue o prescrito.','warn');return;}}
-    if(bag&&bag.list[1].text===c.soro.sol&&bag.list[2].text===c.soro.vol+' ml')note(R,true,`Solução correta: ${c.soro.sol} ${c.soro.vol} ml.`);
+    if(bag&&bag.sol===c.soro.sol&&bag.vol===c.soro.vol)note(R,true,`Solução correta: ${c.soro.sol} ${c.soro.vol} ml.`);
     else note(R,false,`A prescrição pede ${c.soro.sol} ${c.soro.vol} ml.`,-15);
     if(!eq)note(R,false,'Faltou o equipo.',-6);else if(eq.micro!==(c.soro.eq==='micro'))note(R,'warn',`A prescrição pede equipo de ${c.soro.eq==='macro'?'macrogotas':'microgotas'}.`,-6);
     this.guide.complete('levar');this.scene.start('BedS',{c,R});}
@@ -1313,7 +1090,7 @@ class BedS extends Phaser.Scene{
       toast('Refluxo! Agora solte o garrote.','ok');this.guide.complete('puncao');this.redrawArm();});}
   /* ---------- suporte de soro ---------- */
   hang(){const B=this.st.bag;B.hung=true;this.drawer.soro.disable();this.setSel(null);this.hookT.setVisible(false);
-    this.bagImg=this.add.container(1060,200,[this.add.image(0,0,'bag').setScale(1.5),T(this,0,-30,this.c.soro.sol,24,'#fff',{display:true}),T(this,0,4,this.c.soro.vol+' ml',22,'#fff'),...(this.c.tipo==='ev_bol'?[T(this,0,66,'+ '+nm(this.c.d),20,'#0F3238').setBackgroundColor('#ffffff').setPadding(8,2,8,2)]:[])]).setDepth(9);
+    this.bagImg=this.add.container(1060,200,[this.add.image(0,0,'bag').setScale(1.5),fitW(T(this,0,-30,this.c.soro.sol,24,'#fff',{display:true}),118),T(this,0,4,this.c.soro.vol+' ml',22,'#fff'),...(this.c.tipo==='ev_bol'?[T(this,0,66,'+ '+nm(this.c.d),20,'#0F3238').setBackgroundColor('#ffffff').setPadding(8,2,8,2)]:[])]).setDepth(9);
     toast('Soro pendurado.','ok');this.guide.complete('pendurar');}
   buildSupport(){const s=this,B=this.st.bag;
     this.tubePath=null;
@@ -1900,7 +1677,7 @@ function imAnglePanelP(s,{needle,p},cb){
   const angT=T(s,360,700,`Ângulo: ${ang}°`,32,'#0F3238',{display:true});C.add(angT);
   C.add(T(s,360,740,`Agulha ${needle.replace('x',' × ')} · paciente de ${p.peso} kg`,20,'#557178',{w:'700'}));
   const sx0=110,sw=500,yy=815;const tr=s.add.graphics();tr.fillStyle(0xD3E3E5,1);tr.fillRoundedRect(sx0,yy-9,sw,18,9);C.add(tr);
-  C.add(T(s,sx0,yy+38,'10°',18,'#557178'));C.add(T(s,sx0+sw,yy+38,'90°',18,'#557178'));
+  C.add(T(s,sx0,yy+50,'10°',18,'#557178'));C.add(T(s,sx0+sw,yy+50,'90°',18,'#557178'));
   const knob=s.add.circle(sx0+(ang-10)/80*sw,yy,30,0x2D7FD3).setStrokeStyle(6,0xffffff).setInteractive({hitArea:new Phaser.Geom.Circle(30,30,70),hitAreaCallback:Phaser.Geom.Circle.Contains,draggable:true,useHandCursor:true});C.add(knob);
   knob.on('drag',(pp,x)=>{if(done)return;x=Phaser.Math.Clamp(x,sx0,sx0+sw);knob.x=x;ang=Math.round(10+(x-sx0)/sw*80);angT.setText(`Ângulo: ${ang}°`);draw();});
   /* tocar ou arrastar em qualquer ponto da régua */{const tz=s.add.zone(sx0+sw/2,yy,sw+90,100).setInteractive();C.addAt(tz,C.getIndex(knob));tz.on('pointerdown',p=>knob.emit('drag',p,p.x));tz.on('pointermove',p=>{if(p.isDown)knob.emit('drag',p,p.x);});}
@@ -2017,8 +1794,7 @@ function puncturePanelP(s,gauge,cb){
   const C=s.add.container(0,0).setDepth(300).setScrollFactor(0);
   C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.65).setInteractive());
   const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(16,40,688,1050,28);C.add(pg);
-  C.add(T(s,360,96,'Punção venosa',40,'#0F3238',{display:true}));
-  C.add(T(s,360,150,'1. Ajuste o ângulo.  2. Segure o botão azul para avançar.  3. Solte quando o sangue aparecer na câmara.',21,'#557178',{w:'700',wrap:620}));
+  const ttl=T(s,360,96,'Punção venosa',40,'#0F3238',{display:true}),ins=T(s,360,150,'1. Ajuste o ângulo.  2. Segure o botão azul para avançar.  3. Solte quando o sangue aparecer na câmara.',21,'#557178',{w:'700',wrap:620});C.add([ttl,ins]);
   const K=1.25,ox=35,oy=210;C.add(s.add.image(ox,oy,'cross').setOrigin(0).setScale(K));
   const E={x:ox+170*K,y:oy+70*K};const cath=s.add.container(E.x,E.y);C.add(cath);const inner=s.add.container(0,0);cath.add(inner);const ng=s.add.graphics();inner.add(ng);
   let ang=(()=>{let a;do a=5+Math.floor(Math.random()*56);while(a>=13&&a<=32);return a;})(),up=Math.random()<.75,adv=-16,flash=false,state='aim',hold=false,wasIn=false;const col=HEX(CATS[gauge].cor);
@@ -2026,9 +1802,10 @@ function puncturePanelP(s,gauge,cb){
     ng.fillStyle(col,.5);ng.fillRect(-104*k,-4*k,96*k,8*k);ng.fillStyle(col,1);ng.fillRoundedRect(-160*k,-10*k,46*k,20*k,5);
     ng.fillStyle(0xF4FAFD,1);ng.fillRoundedRect(-194*k,-8*k,34*k,16*k,4);ng.lineStyle(2,0x9FBFD0,1);ng.strokeRoundedRect(-194*k,-8*k,34*k,16*k,4);
     if(flash){ng.fillStyle(0xC8202A,1);ng.fillRoundedRect(-192*k,-6*k,30*k,12*k,3);}cath.rotation=ang*Math.PI/180;inner.x=adv*K;};drawC();
+  /* o cateter não cobre o título nem as instruções */{const cv=s.add.graphics();cv.fillStyle(0xffffff,1);cv.fillRoundedRect(16,40,688,170,{tl:28,tr:28,bl:0,br:0});C.add(cv);C.bringToTop(ttl);C.bringToTop(ins);}
   const angT=T(s,360,600,`Ângulo: ${ang}°`,34,'#0F3238',{display:true});C.add(angT);
   const sx0=100,sw=520,sy=670;const tr=s.add.graphics();tr.fillStyle(0xD3E3E5,1);tr.fillRoundedRect(sx0,sy-9,sw,18,9);tr.fillStyle(0x1E9A55,.35);tr.fillRect(sx0+(15-5)/55*sw,sy-9,15/55*sw,18);C.add(tr);
-  C.add(T(s,sx0,sy+34,'5°',18,'#557178'));C.add(T(s,sx0+sw,sy+34,'60°',18,'#557178'));
+  C.add(T(s,sx0,sy+50,'5°',18,'#557178'));C.add(T(s,sx0+sw,sy+50,'60°',18,'#557178'));
   const knob=s.add.circle(sx0+(ang-5)/55*sw,sy,30,0x2D7FD3).setStrokeStyle(6,0xffffff).setInteractive({hitArea:new Phaser.Geom.Circle(30,30,70),hitAreaCallback:Phaser.Geom.Circle.Contains,draggable:true,useHandCursor:true});C.add(knob);
   knob.on('drag',(p,x)=>{if(state!=='aim')return;x=Phaser.Math.Clamp(x,sx0,sx0+sw);knob.x=x;ang=Math.round(5+(x-sx0)/sw*55);angT.setText(`Ângulo: ${ang}°`);drawC();});
   /* tocar ou arrastar em qualquer ponto da régua */{const tz=s.add.zone(sx0+sw/2,sy,sw+90,100).setInteractive();C.addAt(tz,C.getIndex(knob));tz.on('pointerdown',p=>knob.emit('drag',p,p.x));tz.on('pointermove',p=>{if(p.isDown)knob.emit('drag',p,p.x);});}
@@ -2052,7 +1829,10 @@ class Boot extends Phaser.Scene{constructor(){super('Boot');}create(){baseTextur
 function ensureGame(){if(READY)return READY;
   READY=(async()=>{try{await Promise.race([Promise.all([document.fonts.load('800 20px "Baloo 2"'),document.fonts.load('800 16px Nunito'),document.fonts.load('700 16px Nunito')]),new Promise(r=>setTimeout(r,2500))]);}catch(e){}
     await new Promise(res=>{BOOT=res;GAME=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:GW,height:GH,backgroundColor:'#CDEAE5',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},input:{activePointers:2},scene:[Boot,Check,PrepS,BedS,PrepEV,BedEV,BedIM]});});
-    try{new ResizeObserver(()=>{if(GAME)GAME.scale.refresh();placeToasts();}).observe(document.querySelector('.gstage'));}catch(e){}syncInput();})();
+    /* o cartão de objetivo muda de altura a cada passo: reajusta o canvas no quadro seguinte para nada ficar cortado */
+    {let q=0;const fit=()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;if(GAME)GAME.scale.refresh();placeToasts();clearTimeout(fit.t);fit.t=setTimeout(()=>{if(GAME)GAME.scale.refresh();placeToasts();},250);});};
+     try{new ResizeObserver(fit).observe(document.querySelector('.gstage'));}catch(e){}
+     try{new MutationObserver(fit).observe($('#objCard'),{childList:true,subtree:true,characterData:true});}catch(e){}window.addEventListener('resize',fit);}syncInput();})();
   return READY;}
 function endCase(){closeM();$('#sheet').hidden=true;if(CUR&&CUR.done){CUR.R.t1=Date.now();const d=CUR.done;CUR.done=null;d(CUR.R);}}
 function openProto(){showProto();}
@@ -2078,9 +1858,10 @@ function setupIssue(c){
 const ALERG_OK=['Sulfa','Iodo','Frutos do mar','Picada de abelha','Poeira e ácaros'];
 const ALERG_POR={escopolamina:'a associação contém dipirona',amoxclav:'a amoxicilina é uma penicilina',benzetacil:'é uma penicilina'};
 async function playCase(c){
-  document.body.classList.add('playing');$('#view').hidden=true;$('#gamewrap').hidden=false;
+  document.body.classList.add('playing');$('#ptsPill').hidden=false;$('#view').hidden=true;$('#gamewrap').hidden=false;
   const R={c,notes:[],ded:0,t0:Date.now()};CUR={c,R,done:null};setScore();rxStrip(c);
-  await ensureGame();await new Promise(r=>requestAnimationFrame(r));GAME.scale.refresh();
+  const ld=$('#gLoad');if(!GAME)ld.hidden=false;
+  await ensureGame();ld.hidden=true;R.t0=Date.now();await new Promise(r=>requestAnimationFrame(r));GAME.scale.refresh();
   return new Promise(res=>{CUR.done=res;['Check','PrepS','BedS','PrepEV','BedEV','BedIM'].forEach(k=>{if(GAME.scene.isActive(k))GAME.scene.stop(k);});GAME.scene.start('Check',{c,R});});}
 const starsN=p=>p>=90?3:p>=70?2:p>40?1:0;
 const starsH=n=>`<span class="stars">${[0,1,2].map(i=>`<span class="${i<n?'on':'off'}">★</span>`).join('')}</span>`;
@@ -2132,16 +1913,16 @@ function howTo(then){modal(`<div class="mhead"><h2>Como jogar</h2>${then?'':'<bu
   <li><b>Níveis:</b> o Treino mostra cada passo; a Prática mostra só a fase (dica custa 2 pontos); a Prova não ajuda.</li></ol>
   <button class="primary big" id="hok">${then?'Começar plantão':'Entendi'}</button>`);
   const fin=go=>{closeM();try{localStorage.setItem('sm_tut','1');}catch(e){}if(go&&then)then();};$('#hok').onclick=()=>fin(true);const mx=$('#mx');if(mx)mx.onclick=()=>fin(false);}
-function home(){S.run++;CUR=null;$('#casePill').hidden=true;document.body.classList.remove('shift');$('#pts').textContent='0';
+function home(){S.run++;CUR=null;$('#casePill').hidden=true;$('#ptsPill').hidden=true;document.body.classList.remove('shift');$('#pts').textContent='0';
   showView(`<section class="hero"><p class="eyebrow">Simulador · técnico de enfermagem</p><h1>Prepare, puncione, <span>administre.</span></h1>
     <p>Confira o paciente, prepare a medicação, puncione a veia e administre. Feito para jogar no celular.</p></section>
     <p class="sec-l">Escolha o nível</p>
     <div class="levels">${[['treino','Treino','Passo a passo com destaques'],['pratica','Prática','Só a fase atual'],['prova','Prova','Sem roteiro']].map(([k,t,d])=>`<button class="lvl ${LEVEL===k?'on':''}" data-l="${k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
     <p class="sec-l">Escolha o procedimento</p>
-    <div class="modes">${MODES.map(([k,ic,t,d])=>`<button class="mode ${MODE===k?'on':''}" data-m="${k}"><span class="ic">${ICON[ic]}</span><div><span class="tag">3 casos${k==='misto'?' · novo':''}</span><h3>${t}</h3><small>${d}</small><span class="bw" data-b="${k}">${bestTxt(k)}</span></div></button>`).join('')}</div>
+    <div class="modes">${MODES.map(([k,ic,t,d])=>`<button class="mode ${MODE===k?'on':''}" data-m="${k}"><span class="ic">${ICON[ic]}</span><div><span class="tag">3 casos${k==='misto'?' · sorteados':''}</span><h3>${t}</h3><small>${d}</small><span class="bw" data-b="${k}">${bestTxt(k)}</span></div></button>`).join('')}</div>
     <button class="primary big" id="start">Começar plantão</button>
     <button class="linkbtn" id="howBtn">Como jogar</button>
-    <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem.</p>`);
+    <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem. <span class="ver">· v8.7</span></p>`);
   document.querySelectorAll('.lvl').forEach(b=>b.onclick=()=>{LEVEL=b.dataset.l;sfx('tap');document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.bw').forEach(x=>x.innerHTML=bestTxt(x.dataset.b));});
   document.querySelectorAll('.mode[data-m]').forEach(b=>b.onclick=()=>{MODE=b.dataset.m;sfx('tap');document.querySelectorAll('.mode[data-m]').forEach(x=>x.classList.toggle('on',x===b));});
   $('#howBtn').onclick=()=>howTo(null);
@@ -2152,8 +1933,13 @@ function askMenu(){if(!document.body.classList.contains('shift')&&!document.body
   modal(`<h2 style="font-size:26px">Voltar ao menu?</h2><p>O plantão atual será encerrado e os pontos dele não contam.</p><div class="row"><button class="primary danger" id="mok">Sair do plantão</button><button class="ghost" id="mno">Continuar jogando</button></div>`);
   $('#mok').onclick=()=>{closeM();$('#sheet').hidden=true;home();};$('#mno').onclick=closeM;}
 $('#menuBtn').onclick=askMenu;
+try{$('#game').addEventListener('contextmenu',e=>e.preventDefault());}catch(e){}
 home();
 
+</script>
+<script>
+if(!window.Phaser){var v=document.getElementById('view');document.body.classList.remove('playing');
+  v.innerHTML='<div class="sum"><p class="eyebrow">Sem conexão</p><h2 style="font-size:28px;margin:6px 0 10px">Não foi possível carregar o jogo</h2><p class="unit">O motor do jogo vem da internet. Verifique a conexão e tente de novo.</p><button class="primary big" onclick="location.reload()">Tentar de novo</button></div>';}
 </script>
 
 </body></html>
