@@ -14,16 +14,18 @@ Para jogar, abra o `index.html` num navegador. Para publicar, ative o GitHub Pag
 
 ## Níveis
 
-- **Treino**: mostra o passo atual, destaca o que tocar e bloqueia escolhas erradas.
-- **Prática**: mostra só a fase. A dica custa 2 pontos e passos fora de ordem custam 2.
+- **Treino**: mostra o passo atual, destaca o que tocar e avisa na hora quando você pega algo errado.
+- **Prática**: mostra só a fase. A dica custa 2 pontos. Só perde pontos quem inverte uma ordem que importa (ex.: puncionar antes de garrotear); pegar materiais, testar/fixar o acesso, descartar/etiquetar podem ser feitos em qualquer ordem.
 - **Prova**: não mostra roteiro.
 
 ## Como jogar
 
-- Toque num material para pegar e toque no lugar onde vai usá-lo.
+- No leito, toque num material da gaveta para pegar e toque no lugar onde vai usá-lo.
+- Na sala de preparo, arraste para a bancada o que vai usar. Pegou errado ou demais? Arraste de volta para a prateleira. Só perde pontos o que for esquecido na bancada ao sair.
 - Nos minijogos (aspirar, puncionar, injetar), arraste os círculos azuis devagar.
 - Cada caso vale 100 pontos. Cada erro tira pontos na hora, com som, vibração e a tela piscando, e o resumo explica cada erro.
-- Durante o caso, consultar a tabela de preparo custa 5 pontos.
+- A tabela de preparo pode ser consultada a qualquer momento, sem custo.
+- O botão **‹ Menu** no topo encerra o plantão e volta ao início.
 
 ## Tecnologia
 
