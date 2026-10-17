@@ -155,6 +155,12 @@ body{margin:0}
 .ptbl th.sec{background:var(--hud)}
 .ptbl td{border-bottom:1px solid var(--line);padding:7px 8px;vertical-align:top;width:50%}
 .ptbl td b{display:block} .ptbl td em{display:block;color:var(--muted);font-size:12px;font-style:normal}
+.ptbl .rc{display:flex;gap:6px;align-items:baseline;margin-top:3px}
+.ptbl .rc b{display:inline}
+.ptbl .rc i{flex:none;font-style:normal;font-weight:800;font-size:11px;width:17px;height:17px;border-radius:50%;background:var(--amber);color:#fff;display:inline-grid;place-items:center;transform:translateY(-1px)}
+.ptbl .po{color:var(--warn);font-weight:800}
+.rbox{background:var(--amber-soft);border-left:4px solid var(--amber);border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13.5px;line-height:1.4}
+.rbox h3{font-size:17px;margin-bottom:4px} .rbox p{margin:0 0 4px} .rbox ol{margin:4px 0 0;padding-left:20px} .rbox li{margin:2px 0}
 .sum{background:var(--surface);border-radius:22px;padding:20px;margin-top:14px;box-shadow:0 5px 0 var(--line)}
 .sum table{width:100%;border-collapse:collapse;font-size:14.5px}
 .sum td{padding:8px 4px;border-bottom:2px solid var(--surface-2);font-weight:600}
@@ -313,9 +319,26 @@ function makePatient(){
 }
 
 /* ---------- tabela de preparo ---------- */
+/* frasco com pó: ml de ABD para reconstituir — os mesmos números que a sala de preparo cobra (recon, reconB e im.vol) */
+const reconMl=(d,via)=>d.apres!=='frasco'?0:via==='ev'?(d.recon||d.reconB||0):(d.im&&d.im.dil==='ABD'?d.im.vol:0);
+function prepSteps(d,via){const s=via==='ev'?d.ev:d.im,rc=reconMl(d,via);
+  if(!rc) return descr(s);
+  let n;
+  if(via==='im') n=s.final?`Aspirar todo o conteúdo: volume final <b>${s.final} ml</b> (o pó ocupa volume)`:`Aspirar todo o conteúdo (${rc} ml), sem diluir mais`;
+  else if(s.dil==='ABD') n=`Aspirar todo o conteúdo e completar com ABD até <b>${s.vol} ml</b> na seringa`;
+  else n=`Aspirar todo o conteúdo e injetar na bolsa de <b>${bagVol(s)} ml de SF 0,9%</b>`;
+  return `<span class="rc"><i>1</i><span>Reconstituir com <b>${rc} ml de ABD</b> e agitar até dissolver</span></span><span class="rc"><i>2</i><span>${n}</span></span>`;}
 function cell(k,via){ if(!k) return '<td></td>'; const d=D[k],s=via==='ev'?d.ev:d.im; if(!s) return '<td></td>';
-  const nota=via==='ev'?d.evNota:d.imNota;
-  return `<td><b>${d.nome} <span style="font-weight:400;color:var(--muted)">(${d.apres})</span></b>${descr(s)}${nota&&!/somente (endo|intra)/i.test(nota)?`<em>${nota}</em>`:''}</td>`;}
+  const nota=via==='ev'?d.evNota:d.imNota,po=reconMl(d,via)>0;
+  return `<td><b>${d.nome} <span style="font-weight:400;color:var(--muted)">(${d.apres}${po?' · <span class="po">pó</span>':''})</span></b>${prepSteps(d,via)}${nota&&!/somente (endo|intra)/i.test(nota)?`<em>${nota}</em>`:''}</td>`;}
+const RECON_BOX=`<div class="rbox"><h3>Frasco com pó: reconstitua antes</h3>
+  <p><b>Quando:</b> na sala de preparo, logo depois de abrir o frasco e antes de aspirar a dose. Reconstitua na hora de administrar, nunca com antecedência. Ampolas já vêm em solução e não se reconstituem.</p>
+  <p><b>Como:</b></p><ol><li>Retire o lacre e desinfete a borracha com álcool 70%.</li>
+  <li>Com a agulha 40 × 12, aspire o volume de ABD indicado na tabela (use ABD, não SF 0,9%).</li>
+  <li>Injete o ABD no frasco, deixando escorrer pela parede.</li>
+  <li>Agite em movimentos circulares até não restar pó.</li>
+  <li>Aspire todo o conteúdo do frasco.</li>
+  <li>Siga o passo <b>2</b> da tabela: completar a seringa, injetar na bolsa ou, na IM, trocar a agulha para aplicar.</li></ol></div>`;
 function protoTable(){
   return `<div class="tbl-wrap"><table class="ptbl"><tr><th>Endovenosa</th><th>Intramuscular</th></tr>
    ${ROWS.map(([a,b])=>`<tr>${cell(a,'ev')}${cell(b,'im')}</tr>`).join('')}
@@ -1932,7 +1955,7 @@ function ensureGame(){if(READY)return READY;
   return READY;}
 function endCase(){closeM();$('#sheet').hidden=true;if(CUR&&CUR.done){CUR.R.t1=Date.now();const d=CUR.done;CUR.done=null;d(CUR.R);}}
 function openProto(){showProto();}
-function showProto(){modal(`<div class="mhead"><h2>Preparo de medicação</h2><button class="ghost" id="mx">Fechar</button></div><p class="unit" style="margin:0 0 10px">ABD = água bidestilada · SF 0,9% = soro fisiológico</p>${protoTable()}`);$('#mx').onclick=closeM;}
+function showProto(){modal(`<div class="mhead"><h2>Preparo de medicação</h2><button class="ghost" id="mx">Fechar</button></div><p class="unit" style="margin:0 0 10px">ABD = água bidestilada · SF 0,9% = soro fisiológico</p>${RECON_BOX}${protoTable()}`);$('#mx').onclick=closeM;}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!$('#modal').dataset.lock)closeM();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').dataset.lock){closeM();$('#sheet').hidden=true;}});
 $('#protoBtn').onclick=openProto;

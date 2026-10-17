@@ -26,6 +26,7 @@ Para jogar, abra o `index.html` num navegador. Para publicar, ative o GitHub Pag
 - Cada caso vale 100 pontos. Cada erro tira pontos na hora, com som, vibração e a tela piscando, e o resumo explica cada erro.
 - No gotejamento vale acertar o ritmo (lento, médio ou rápido), como no olhômetro do plantão. O número de gotas por minuto aparece só como referência.
 - A tabela de preparo pode ser consultada a qualquer momento, sem custo.
+- Nos frascos com pó, a tabela mostra quanto ABD usar para reconstituir e o que fazer depois (completar a seringa, injetar na bolsa ou aplicar IM). Um quadro no topo explica quando e como reconstituir.
 - O botão **‹ Menu** no topo encerra o plantão e volta ao início.
 
 ## Tecnologia
