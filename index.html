@@ -237,7 +237,7 @@ function makeCase(tipo){
   const c={tipo,p,leito,hora:pick(['08:00','10:00','14:00','16:00','20:00','22:00'])};
   if(tipo==='soro'){ c.soro=pick(SOROS); c.inf={vol:c.soro.vol,min:c.soro.min,eq:c.soro.eq}; c.via='EV'; }
   else{
-    c.key=pick(tipo==='im'?IMS:tipo==='ev_ser'?EV_SER:EV_BOL); c.d=D[c.key];
+    c.key=pick(POOL[tipo]); c.d=D[c.key];
     c.via=tipo==='im'?'IM':'EV'; c.spec=tipo==='im'?c.d.im:c.d.ev;
     if(tipo==='ev_bol') c.inf={vol:c.spec.volInf||c.spec.vol,min:c.spec.tempo,eq:'macro'};
   }
@@ -249,7 +249,7 @@ function makeCase(tipo){
 }
 function rxLine(c){
   if(c.tipo==='soro') return `${c.soro.sol} ${c.soro.vol} ml — EV — correr em ${tempoTxt(c.soro.min)} — equipo de ${c.soro.eq==='macro'?'macrogotas':'microgotas'}`;
-  if(c.tipo==='ev_ser') return `${c.d.nome} ${c.d.dose} — EV — agora`;
+  if(c.tipo==='ev_ser') return `${c.d.nome} ${c.d.dose} — EV lento — agora`;
   if(c.tipo==='ev_bol') return `${c.d.nome} ${c.d.dose}${c.key==='tiaminab12'?' em SF 0,9% 250 ml':''} — EV — correr em ${tempoTxt(c.spec.tempo)}`;
   return `${c.d.nome} ${c.d.dose} — IM — agora (volume a aplicar: ${fmt(c.d.volIM)} ml)`;
 }
@@ -708,7 +708,7 @@ function imAnglePanel(s,needle,cb){
 const GW=720, GH=1120, DRAWER_Y=900;
 let LEVEL='treino';
 const SOL_POOL=[['SF 0,9%',100],['SF 0,9%',250],['SF 0,9%',500],['SF 0,9%',1000],['SG 5%',500],['SG 5%',1000],['Ringer lactato',500],['Ringer lactato',1000]];
-const FASES={conf:'Conferência',prep:'Sala de preparo',soro:'Preparo do soro',puncao:'Punção venosa',inst:'Instalação',reg:'Registro'};
+const FASES={conf:'Conferência',prep:'Sala de preparo',soro:'Preparo do soro',puncao:'Punção venosa',inst:'Instalação',adm:'Administração',reg:'Registro'};
 /* braço na vertical */
 const CXA=300,KA=.98,Y0A=14;
 const AV=(x,y)=>({x:CXA+(y-155)*KA,y:Y0A+x*KA});
@@ -774,8 +774,8 @@ function makeDrawer(s,items,onTap){
     const lb=T(s,0,32,it.label,24,'#E6F6F3');C.add([ic,lb]);
     const draw=on=>{bg.clear();bg.fillStyle(on?0xFFC43D:0xffffff,on?1:.1);bg.fillRoundedRect(x-68,y-52,136,104,16);if(on){bg.fillStyle(0x0E4A4F,1);bg.fillRoundedRect(x-63,y-47,126,94,13);}};
     draw(false);C.setInteractive({useHandCursor:true});
-    C.on('pointerup',()=>{if(C.off)return;onTap(it.key);});
-    out[it.key]={C,draw,disable(){C.off=true;C.setAlpha(.3);draw(false);},enable(){C.off=false;C.setAlpha(1);},x,y};
+    C.on('pointerup',()=>{if(C._dis)return;onTap(it.key);});
+    out[it.key]={C,draw,disable(){C._dis=true;C.setAlpha(.3);draw(false);},enable(){C._dis=false;C.setAlpha(1);},x,y};
   });
   return out;
 }
@@ -783,32 +783,53 @@ function makeDrawer(s,items,onTap){
 /* ---------- CENA 0: conferência (estilo "Papers, Please") ---------- */
 class Check extends Phaser.Scene{
   constructor(){super('Check');}
-  create(d){const s=this,c=this.c=d.c;this.R=d.R;
+  create(d){const s=this,c=this.c=d.c;this.R=d.R;this.done=false;
     const p=c.p,t=PELE[p.pele];
-    $('#objCard').innerHTML=`<div class="num">1</div><div class="txt"><div class="ph">Conferência</div><div class="tt">O paciente confere?</div><div class="how">Compare o rosto com a foto, a pulseira com o prontuário e as alergias com a prescrição.</div></div>`;
+    $('#objCard').innerHTML=`<div class="num">1</div><div class="txt"><div class="ph">Conferência</div><div class="tt">O paciente confere com a ficha?</div><div class="how"><b>Em cima, em verde:</b> o paciente no leito e a pulseira dele. <b>Embaixo, em laranja:</b> a ficha (prontuário). Compare rosto × foto, nome, nascimento e alergias.</div></div>`;
     svgTex(this,'bedTop',ART.bedTop()).then(()=>{
-      this.add.image(360,260,'bedTop');
-      const f=drawFace(s,230,200,p,95);f.setDepth(5);
-      // braço sobre o lençol com pulseira
-      const ag=s.add.graphics().setDepth(6);ag.fillStyle(HEX(t.mid),1);ag.lineStyle(3,HEX(t.line),1);ag.fillRoundedRect(330,340,330,70,34);ag.strokeRoundedRect(330,340,330,70,34);
-      ag.fillStyle(0xffffff,1);ag.fillRoundedRect(560,334,34,82,8);ag.fillStyle(c.alergiaW?0xD9403A:0x2D7FD3,1);ag.fillRoundedRect(560,334,34,16,6);
-      T(s,600,446,'pulseira',24,'#3B5A60').setDepth(6);
+      const PC='#0E4A4F',FC='#E8962A';
+      /* ===== PAINEL 1: O PACIENTE (quem está no leito) ===== */
+      const pb=s.add.graphics();pb.fillStyle(0xE6F6F3,1);pb.fillRoundedRect(8,6,704,618,22);
+      s.add.image(360,264,'bedTop').setScale(.8);
+      const ph=s.add.graphics().setDepth(4);ph.fillStyle(0x0E4A4F,1);ph.fillRoundedRect(8,6,704,58,{tl:22,tr:22,bl:0,br:0});
+      T(s,32,35,'1 · O PACIENTE',28,'#fff',{ox:0,display:true}).setDepth(5);T(s,690,35,'quem está no leito',20,'#BFE3DD',{ox:1,w:'700'}).setDepth(5);
+      const f=drawFace(s,256,212,p,78);f.setDepth(5);
+      // braço sobre o lençol com a pulseira
+      const ag=s.add.graphics().setDepth(6);ag.fillStyle(HEX(t.mid),1);ag.lineStyle(3,HEX(t.line),1);ag.fillRoundedRect(340,330,270,58,29);ag.strokeRoundedRect(340,330,270,58,29);
+      ag.fillStyle(0xffffff,1);ag.fillRoundedRect(520,324,30,70,8);ag.fillStyle(c.alergiaW?0xD9403A:0x2D7FD3,1);ag.fillRoundedRect(520,324,30,14,6);
+      // lupa: da pulseira no braço para a pulseira ampliada
+      ag.lineStyle(4,0x0E4A4F,.55);ag.lineBetween(535,396,535,486);ag.fillStyle(0x0E4A4F,.55);ag.fillTriangle(523,474,547,474,535,490);
+      T(s,520,440,'pulseira ampliada',20,'#3B5A60',{ox:1,w:'700'}).setBackgroundColor('#ffffffcc').setPadding(6,2,6,2).setDepth(6);
       // pulseira ampliada
       const nomeW=c.issue==='nome'?p.alt:p.n, nascW=c.issue==='nasc'?c.nascAlt:p.nasc;
-      const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(20,530,680,130,40);pg.fillStyle(0x2D7FD3,1);pg.fillRoundedRect(20,530,40,130,{tl:40,bl:40,tr:0,br:0});pg.fillRoundedRect(660,530,40,130,{tl:0,bl:0,tr:40,br:40});
-      T(s,80,552,'PULSEIRA',20,'#557178',{ox:0});T(s,80,586,nomeW,28,'#0F3238',{ox:0});
-      T(s,80,630,`Nasc. ${nascW}`,26,'#3B5A60',{ox:0,w:'700'});
-      const al=c.alergiaW||'Nega alergias';T(s,640,628,al==='Nega alergias'?al:'ALERGIA: '+al.toUpperCase(),20,'#fff',{ox:1}).setBackgroundColor(al==='Nega alergias'?'#1E9A55':'#D9403A').setPadding(10,4,10,4);
-      // prontuário
-      const cg=s.add.graphics();cg.fillStyle(0xFFFDF4,1);cg.fillRoundedRect(20,680,680,230,14);cg.lineStyle(2,0xE5DCC4,1);cg.strokeRoundedRect(20,680,680,230,14);
-      cg.fillStyle(0xE8962A,1);cg.fillRoundedRect(20,680,680,40,{tl:14,tr:14,bl:0,br:0});T(s,40,700,'PRONTUÁRIO',22,'#fff',{ox:0});
-      const ph=drawFace(s,120,810,c.photo,70);
-      const tx=220;T(s,tx,745,p.n,26,'#0F3238',{ox:0,wrap:470,align:'left'});
-      T(s,tx,790,`Nasc. ${p.nasc} · ${p.idade} anos`,25,'#3B5A60',{ox:0,w:'700'});T(s,tx,826,`Leito ${c.leito} · ${c.queixa}`,23,'#3B5A60',{ox:0,w:'700',wrap:470});
-      T(s,tx,866,c.tipo==='soro'?`${c.soro.sol} ${c.soro.vol} ml EV`:`${nm(c.d)} ${c.via}`,24,'#8A5A12',{ox:0,wrap:470,align:'left'});
+      const pg=s.add.graphics().setDepth(6);pg.fillStyle(0xffffff,1);pg.fillRoundedRect(24,494,672,118,40);pg.lineStyle(3,0x9FB1BB,1);pg.strokeRoundedRect(24,494,672,118,40);
+      pg.fillStyle(0x2D7FD3,1);pg.fillRoundedRect(24,494,36,118,{tl:40,bl:40,tr:0,br:0});pg.fillRoundedRect(660,494,36,118,{tl:0,bl:0,tr:40,br:40});
+      T(s,78,520,'NOME',17,'#557178',{ox:0}).setDepth(7);T(s,150,520,nomeW,26,'#0F3238',{ox:0}).setDepth(7);
+      T(s,78,560,'NASC.',17,'#557178',{ox:0}).setDepth(7);T(s,150,560,nascW,25,'#0F3238',{ox:0,w:'700'}).setDepth(7);
+      const al=c.alergiaW||'Nega alergias';T(s,644,588,al==='Nega alergias'?al:'ALERGIA: '+al.toUpperCase(),19,'#fff',{ox:1}).setBackgroundColor(al==='Nega alergias'?'#1E9A55':'#D9403A').setPadding(10,4,10,4).setDepth(7);
+      const pf=s.add.graphics().setDepth(8);pf.lineStyle(6,0x0E4A4F,1);pf.strokeRoundedRect(8,6,704,618,22);
+      /* ===== entre os painéis ===== */
+      T(s,360,642,'⇅  compare  ⇅',22,'#0F3238',{display:true}).setBackgroundColor('#FFC43D').setPadding(16,2,16,2).setDepth(9);
+      /* ===== PAINEL 2: A FICHA (o que está registrado) ===== */
+      const cg=s.add.graphics();cg.fillStyle(0xFFFDF4,1);cg.fillRoundedRect(8,660,704,318,22);
+      cg.fillStyle(0xE8962A,1);cg.fillRoundedRect(8,660,704,58,{tl:22,tr:22,bl:0,br:0});
+      cg.lineStyle(6,0xE8962A,1);cg.strokeRoundedRect(8,660,704,318,22);
+      T(s,32,689,'2 · A FICHA (prontuário)',28,'#fff',{ox:0,display:true});T(s,690,689,'o que está registrado',20,'#FFF1DA',{ox:1,w:'700'});
+      // foto 3x4 do cadastro
+      cg.fillStyle(0xffffff,1);cg.fillRoundedRect(30,736,170,206,8);cg.lineStyle(2,0xC9D2D6,1);cg.strokeRoundedRect(30,736,170,206,8);
+      cg.fillStyle(0xD3E1EA,1);cg.fillRect(42,748,146,156);
+      const phf=drawFace(s,115,826,c.photo,62);
+      const msk=s.add.graphics().setVisible(false);msk.fillStyle(0xffffff);msk.fillRect(42,748,146,156);phf.setMask(msk.createGeometryMask());
+      T(s,115,922,'FOTO DO CADASTRO',15,'#557178');
+      const tx=224;
+      const fld=(y,lab,val,sz,col)=>{T(s,tx,y,lab,16,'#8A6A30',{ox:0});T(s,tx,y+26,val,sz,col,{ox:0,wrap:470,align:'left'});};
+      fld(738,'NOME',p.n,25,'#0F3238');
+      fld(796,'NASC.',`${p.nasc} · ${p.idade} anos`,24,'#0F3238');
+      fld(854,'LEITO · MOTIVO',`Leito ${c.leito} · ${c.queixa}`,22,'#3B5A60');
+      fld(912,'PRESCRITO',c.tipo==='soro'?`${c.soro.sol} ${c.soro.vol} ml EV`:`${nm(c.d)} ${c.via}`,22,'#8A5A12');
       this.stampLayer=s.add.container(0,0).setDepth(50);
-      const b1=button(s,190,1030,'NÃO CONFERE',()=>this.decide(false),{w:310,h:96,color:0xD9403A,dark:0x8E2420,size:30});
-      const b2=button(s,530,1030,'CONFERE',()=>this.decide(true),{w:310,h:96,color:0x1E9A55,dark:0x12693A,size:30});
+      const b1=button(s,190,1050,'NÃO CONFERE',()=>this.decide(false),{w:320,h:88,color:0xD9403A,dark:0x8E2420,size:30});
+      const b2=button(s,530,1050,'CONFERE',()=>this.decide(true),{w:320,h:88,color:0x1E9A55,dark:0x12693A,size:30});
       this.btns=[b1,b2];
     });
   }
@@ -822,7 +843,7 @@ class Check extends Phaser.Scene{
         modal(`<h2 style="font-size:28px;color:var(--bad)">Paciente não confere</h2><p>${motivo}</p><p class="unit">Diante de qualquer divergência: não administre, comunique o enfermeiro e registre.</p><button class="primary big" id="gok">Ver resultado</button>`);$('#modal').dataset.lock='1';
         $('#gok').onclick=()=>{delete $('#modal').dataset.lock;closeM();endCase();};}
       else{if(ok)note(R,true,'Identificação conferida: rosto, nome, nascimento e alergias.');else note(R,false,'Os dados conferiam. Suspender sem motivo atrasa o tratamento.',-20);
-        this.scene.start(c.tipo==='soro'?'PrepS':'PrepS',{c,R});}
+        this.scene.start(c.tipo==='soro'?'PrepS':'PrepEV',{c,R});}
     });}
 }
 
@@ -884,17 +905,17 @@ const STEPS_SORO=[
  ['inst','regular','Regule o gotejamento','Deslize a roda do rolete para cima ou para baixo, observe as gotas e toque em Confirmar.','suporte'],
  ['reg','finalizar','Finalize e registre','Toque em Finalizar.','braco']];
 class BedS extends Phaser.Scene{
-  constructor(){super('BedS');}
+  constructor(k='BedS'){super(k);}
   create(d){
-    this.c=d.c;this.R=d.R;const c=this.c,p=c.p,t=PELE[p.pele];
-    this.st={gloved:false,gar:null,rub:null,stroke:null,cath:null,mandril:true,ext:false,tested:false,fixed:false,
-      bag:{hung:false,eq:false,open:true,spiked:false,ch:0,front:0,air:false,primed:false,conn:false,rate:0,ok:false,spillT:0,micro:c.soro.eq==='micro'}};
+    this.c=d.c;this.R=d.R;const c=this.c,p=c.p,t=PELE[p.pele];this.isEV=c.tipo==='ev_ser';
+    this.st={given:false,flushed:false,gloved:false,gar:null,rub:null,stroke:null,cath:null,mandril:true,ext:false,tested:false,fixed:false,
+      bag:{hung:false,eq:false,open:true,spiked:false,ch:0,front:0,air:false,primed:false,conn:false,rate:0,ok:false,spillT:0,micro:!!c.soro&&c.soro.eq==='micro'}};
     this.sel=null;this.view='braco';
     svgTex(this,'armV'+p.pele,ART.armV(t)).then(()=>this.build());
   }
   build(){
     const s=this,c=this.c,st=this.st;
-    this.cameras.main.setBounds(0,0,1440,GH);
+    this.cameras.main.setBounds(0,0,this.isEV?720:1440,GH);
     this.add.image(360,460,'armV'+c.p.pele);
     this.armPoly=new Phaser.Geom.Polygon(samplePath(ARM,8,(x,y)=>AV(x,y)));
     this.veins=Object.entries(VEINS).map(([k,v])=>({k,pts:samplePath(v.d,6,(x,y)=>AV(x,y))}));
@@ -902,32 +923,36 @@ class BedS extends Phaser.Scene{
     this.sharps=this.add.image(610,790,'sharps').setScale(.75).setDepth(5);T(s,610,712,'coletor',28,'#3B5A60');
     this.fx=this.add.graphics().setDepth(6);this.rubG=this.add.graphics().setDepth(4);this.armG=this.add.graphics().setDepth(8);
     // vista do suporte
-    const sg=this.add.graphics();sg.fillStyle(0xDDEFF2,1);sg.fillRect(720,0,720,DRAWER_Y);sg.fillStyle(0xC8E2E6,1);sg.fillRect(720,760,720,160);
+    if(!this.isEV){const sg=this.add.graphics();sg.fillStyle(0xDDEFF2,1);sg.fillRect(720,0,720,DRAWER_Y);sg.fillStyle(0xC8E2E6,1);sg.fillRect(720,760,720,160);
     sg.fillStyle(0x9AA8B2,1);sg.fillRect(1176,30,10,890);sg.lineStyle(7,0x8E9CA6,1);sg.lineBetween(1180,40,1060,40);sg.strokeCircle(1060,52,12);
-    this.hookT=T(s,1060,96,'gancho',28,'#3B5A60');
+    this.hookT=T(s,1060,96,'gancho',28,'#3B5A60');}
     this.eqG=this.add.graphics().setDepth(10);this.bagImg=null;
     // tubo indo para o braço
     this.tubeArm=this.add.graphics().setDepth(9);
     // abas
-    this.tabs=['braco','suporte'].map((v,i)=>{const b=button(s,105+i*215,46,v==='braco'?'Braço':'Suporte',()=>this.goView(v),{w:200,h:62,size:26,color:0x557178,dark:0x3A4E53});b.setScrollFactor(0).setDepth(85);return b;});
+    if(!this.isEV)this.tabs=['braco','suporte'].map((v,i)=>{const b=button(s,85+i*160,46,v==='braco'?'Braço':'Suporte',()=>this.goView(v),{w:150,h:62,size:24,color:0x557178,dark:0x3A4E53});b.setScrollFactor(0).setDepth(85);return b;});
     // gaveta
-    this.drawer=makeDrawer(s,[
+    const BASE_IT=[{key:'luvas',label:'Luvas',tex:'gloves'},{key:'garrote',label:'Garrote',tex:'garroteRoll'},{key:'alcool',label:'Álcool',tex:'alcool'},
+      {key:'cateter',label:'Cateter',tex:'cat20',rot:-Math.PI/4,fit:.6},{key:'extensor',label:'Extensor',tex:'extensor'},{key:'curativo',label:'Curativo',tex:'curativo'},
+      {key:'sf',label:'SF 10 ml',draw:g=>drawSyr(g,10,10,null,LIQ_DIL,.5)}];
+    if(this.isEV)this.drawer=makeDrawer(s,[...BASE_IT,{key:'med',label:'Medicação',draw:g=>drawSyr(g,c.syr.cap,c.syr.vol,null,LIQ_DRUG,48/SYR[c.syr.cap][0])}],k=>this.pick(k));
+    else this.drawer=makeDrawer(s,[
       {key:'luvas',label:'Luvas',tex:'gloves'},{key:'garrote',label:'Garrote',tex:'garroteRoll'},{key:'alcool',label:'Álcool',tex:'alcool'},
       {key:'cateter',label:'Cateter',tex:'cat20',rot:-Math.PI/4,fit:.6},{key:'extensor',label:'Extensor',tex:'extensor'},{key:'curativo',label:'Curativo',tex:'curativo'},
-      {key:'sf',label:'SF 10 ml',draw:g=>drawSyr(g,10,10,null,LIQ_DIL,.5)},{key:'soro',label:'Soro',tex:'bag'},{key:'equipo',label:'Equipo',tex:c.soro.eq==='micro'?'equipoMi':'equipo'}],k=>this.pick(k));
+      {key:'sf',label:'SF 10 ml',draw:g=>drawSyr(g,10,10,null,LIQ_DIL,.5)},{key:'soro',label:c.tipo==='ev_bol'?'Bolsa':'Soro',tex:'bag'},{key:'equipo',label:'Equipo',tex:c.soro.eq==='micro'?'equipoMi':'equipo'}],k=>this.pick(k));
     this.finBtn=button(s,74+4*143,DRAWER_Y+162,'Finalizar',()=>this.finish(),{w:132,h:92,size:24}).setScrollFactor(0).setDepth(85);
-    this.guide=new Guide(this,STEPS_SORO);
+    this.guide=new Guide(this,this.isEV?STEPS_EV:STEPS_SORO);
     this.hl=this.add.graphics().setDepth(70);this.hlUI=this.add.graphics().setScrollFactor(0).setDepth(84);
     // entrada de toque no mundo
     this.input.on('pointerdown',(p,objs)=>{if(p.y>DRAWER_Y*this.scaleY()||objs.length)return;const w=this.wp(p);
-      if(this.sel==='alcool'&&this.onArm(w.x,w.y)){st.stroke=[];this.rubbing=true;this.gauze.setPosition(w.x+10,w.y-10).setVisible(true);}});
+      if(this.sel==='alcool'&&(this.onArm(w.x,w.y)||this.veinAt(w.x,w.y))){st.stroke=[];this.rubbing=true;this.gauze.setPosition(w.x+10,w.y-10).setVisible(true);}});
     this.gauze=this.add.image(0,0,'algodao').setScale(1.3).setDepth(60).setVisible(false);
     this.rubBar=this.add.graphics().setDepth(61);
-    this.input.on('pointermove',p=>{if(!this.rubbing||!p.isDown)return;const w=this.wp(p);this.gauze.setPosition(w.x+10,w.y-10).setVisible(true);if(!this.onArm(w.x,w.y))return;
+    this.input.on('pointermove',p=>{if(!this.rubbing||!p.isDown)return;const w=this.wp(p);this.gauze.setPosition(w.x+10,w.y-10).setVisible(true);if(!this.onArm(w.x,w.y)&&!this.veinAt(w.x,w.y))return;
       const last=st.stroke[st.stroke.length-1];if(last&&Math.hypot(last.x-w.x,last.y-w.y)<6)return;st.stroke.push(w);this.rubG.fillStyle(0xffffff,.22);this.rubG.fillCircle(w.x,w.y,28);
       const f=Math.min(1,st.stroke.length/18);const g=this.rubBar;g.clear();g.fillStyle(0x0F3238,.8);g.fillRoundedRect(w.x-70,w.y-90,140,22,11);g.fillStyle(f>=1?0x1E9A55:0xFFC43D,1);g.fillRoundedRect(w.x-66,w.y-86,132*f,14,7);});
     this.input.on('pointerup',(p,objs)=>{if(this.rubbing){this.rubbing=false;this.gauze.setVisible(false);this.rubBar.clear();this.endRub();return;}if(objs.length)return;const w=this.wp(p);if(p.y>=DRAWER_Y*this.scaleY())return;this.worldTap(w.x,w.y);});
-    this.buildSupport();
+    if(!this.isEV)this.buildSupport();
     this.ready=true;
   }
   scaleY(){return 1;}
@@ -941,16 +966,16 @@ class BedS extends Phaser.Scene{
     if(k==='cateter'){this.catPicker();return;}
     if(k==='equipo'){if(!B.hung){toast('Pendure o soro no suporte primeiro.','warn');this.goView('suporte');return;}if(!this.guide.can('rolete'))return;
       B.eq=true;this.drawer.equipo.disable();this.goView('suporte');toast('Equipo no suporte. O rolete vem aberto: deslize a roda para baixo para fechar.');this.setSel(null);return;}
-    const names={garrote:'garrote',alcool:'algodão com álcool 70%',extensor:'extensor',curativo:'curativo',sf:'seringa de SF 0,9%',soro:'soro'};
+    const names={garrote:'garrote',alcool:'algodão com álcool 70%',extensor:'extensor',curativo:'curativo',sf:'seringa de SF 0,9%',soro:'soro',med:'seringa com a medicação'};
     if(k==='soro')this.goView('suporte');
-    if(['garrote','alcool','extensor','curativo','sf'].includes(k))this.goView('braco');
+    if(['garrote','alcool','extensor','curativo','sf','med'].includes(k))this.goView('braco');
     this.setSel(k,names[k]);
   }
   catPicker(){const s=this;$('#gToast').innerHTML='';const C=s.add.container(0,0).setScrollFactor(0).setDepth(200);
     C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.6).setInteractive());
     const g=s.add.graphics();g.fillStyle(0xffffff,1);g.fillRoundedRect(30,150,660,760,24);C.add(g);
     C.add(T(s,360,200,'Escolha o cateter',34,'#0F3238',{display:true}));
-    C.add(T(s,360,244,`${this.c.p.idade} anos${this.c.p.fragil?' · veias frágeis':''} · soroterapia`,20,'#557178',{w:'700'}));
+    C.add(T(s,360,244,`${this.c.p.idade} anos${this.c.p.fragil?' · veias frágeis':''} · ${{ev_ser:'medicação EV',ev_bol:'medicação em bolsa',soro:'soroterapia'}[this.c.tipo]}`,20,'#557178',{w:'700'}));
     [14,18,20,22,24].forEach((gg,i)=>{const y=320+i*112;const b=s.add.container(360,y).setSize(600,100).setInteractive({useHandCursor:true});
       const bg=s.add.graphics();bg.fillStyle(0xF0F7F7,1);bg.fillRoundedRect(-300,-48,600,96,16);b.add(bg);b.add(s.add.image(-90,0,'cat'+gg).setScale(1.5));
       b.add(T(s,200,-12,`${gg} G`,30,'#0F3238',{display:true}));b.add(T(s,200,22,CATS[gg].nome,18,'#557178'));
@@ -963,14 +988,25 @@ class BedS extends Phaser.Scene{
   worldTap(x,y){const st=this.st,sel=this.sel,R=this.R,c=this.c,B=st.bag;
     if(!sel)return;
     if(sel==='garrote'){if(!this.onArm(x,y))return;if(!this.guide.can('garrote'))return;this.placeGarrote(y);return;}
-    if(sel.startsWith('cat')){if(!this.onArm(x,y))return;if(!this.guide.can('puncao'))return;this.tryCath(+sel.slice(3),x,y);return;}
+    if(sel.startsWith('cat')){if(!this.onArm(x,y)&&!this.veinAt(x,y))return;if(!this.guide.can('puncao'))return;this.tryCath(+sel.slice(3),x,y);return;}
     if(sel==='mandril'){if(Math.hypot(x-610,y-790)<100){if(!this.guide.can('mandril'))return;
         if(st.gar)note(R,false,'Retirou o mandril com o garrote apertado: houve extravasamento de sangue.',-5,'mandgar');
         st.mandril=false;this.mandImg.destroy();this.setSel(null);toast('Mandril descartado no coletor.','ok');this.guide.complete('mandril');this.redrawArm();}
       else toast('Descarte o mandril no coletor amarelo.','warn');return;}
     if(sel==='extensor'){if(!this.near(st.cath,x,y,90))return;if(st.mandril){toast('Retire o mandril primeiro.','warn');return;}if(!this.guide.can('extensor'))return;
       st.ext=true;this.port={x:st.cath.x+110,y:st.cath.y+150};this.drawer.extensor.disable();this.setSel(null);toast('Extensor conectado.','ok');this.guide.complete('extensor');this.redrawArm();return;}
-    if(sel==='sf'){if(!this.near(this.port,x,y,90)){if(this.near(st.cath,x,y))toast('Conecte o extensor primeiro.');return;}if(!this.guide.can('teste'))return;
+    if(sel==='med'){if(!this.near(this.port,x,y,90)){if(this.near(st.cath,x,y)||!st.cath)toast(st.cath?'Conecte o extensor primeiro.':'Puncione a veia primeiro.');return;}
+      if(!this.guide.can('administrar'))return;
+      if(st.gar){note(R,false,'Solte o garrote antes de administrar a medicação.',-5,'garmed');return;}
+      if(!st.tested)note(R,'warn','Teste a permeabilidade do acesso com SF 0,9% antes de administrar.',-3,'semteste');
+      this.setSel(null);const sy=c.syr;
+      injectPanelP(this,{cap:sy.cap,vol:sy.vol,p:c.p,name:nm(c.d),tmin:c.d.tmin||3,liq:LIQ_DRUG},res=>{
+        st.given=true;this.drawer.med.disable();speedNotes(R,res,c.key,false);
+        toast('Medicação administrada. Agora lave o acesso com SF 0,9%.','ok');this.guide.complete('administrar');});return;}
+    if(sel==='sf'){if(!this.near(this.port,x,y,90)){if(this.near(st.cath,x,y))toast('Conecte o extensor primeiro.');return;}
+      if(this.isEV&&st.given&&!st.flushed){if(!this.guide.can('lavar'))return;st.flushed=true;this.setSel(null);toast('Acesso lavado com SF 0,9%: a medicação que ficou no extensor chegou à veia.','ok');this.guide.complete('lavar');return;}
+      if(st.tested){toast(this.isEV&&!st.given?'Acesso já testado. Agora administre a medicação.':'Acesso já testado.');return;}
+      if(!this.guide.can('teste'))return;
       if(st.gar){note(R,'warn','Resistência e dor ao lavar: o garrote ainda está apertado.',-3,'garflush');return;}
       st.tested=true;this.setSel(null);toast('Acesso pérvio: sem dor, sem edema.','ok');this.guide.complete('teste');return;}
     if(sel==='curativo'){if(!this.near(st.cath,x,y,90))return;if(st.mandril){toast('Retire o mandril antes de fixar.');return;}if(!this.guide.can('fixar'))return;
@@ -1040,7 +1076,7 @@ class BedS extends Phaser.Scene{
       toast('Refluxo! Agora solte o garrote.','ok');this.guide.complete('puncao');this.redrawArm();});}
   /* ---------- suporte de soro ---------- */
   hang(){const B=this.st.bag;B.hung=true;this.drawer.soro.disable();this.setSel(null);this.hookT.setVisible(false);
-    this.bagImg=this.add.container(1060,200,[this.add.image(0,0,'bag').setScale(1.5),T(this,0,-30,this.c.soro.sol,24,'#fff',{display:true}),T(this,0,4,this.c.soro.vol+' ml',22,'#fff')]).setDepth(9);
+    this.bagImg=this.add.container(1060,200,[this.add.image(0,0,'bag').setScale(1.5),T(this,0,-30,this.c.soro.sol,24,'#fff',{display:true}),T(this,0,4,this.c.soro.vol+' ml',22,'#fff'),...(this.c.tipo==='ev_bol'?[T(this,0,66,'+ '+nm(this.c.d),20,'#0F3238').setBackgroundColor('#ffffff').setPadding(8,2,8,2)]:[])]).setDepth(9);
     toast('Soro pendurado.','ok');this.guide.complete('pendurar');}
   buildSupport(){const s=this,B=this.st.bag;
     this.tubePath=null;
@@ -1073,19 +1109,23 @@ class BedS extends Phaser.Scene{
     const bar=s.add.graphics();C.add(bar);bands.forEach(([a,b,l,col])=>{bar.fillStyle(col,.9);bar.fillRect(gx+a/max*gw,gy+8,(b-a)/max*gw,40);C.add(T(s,gx+(a+b)/2/max*gw,gy+28,l,28,'#fff',{display:true}));});
     this.gMark=s.add.triangle(gx,gy,0,0,26,0,13,18,0x0F3238);C.add(this.gMark);this.gMax=max;this.gx=gx;this.gw=gw;
     this.gNum=T(s,gx+gw/2,gy+70,'',26,'#0F3238');C.add(this.gNum);
-    this.confBtn=button(s,1220,700,'Confirmar',()=>this.confirmRate(),{w:200,h:64,size:24});this.confBtn.setDepth(61);
-    this.calcBtn=button(s,880,700,'Como calcular? (−3)',()=>{note(this.R,'warn','Consultou a fórmula do gotejamento.',-3,'formula');const inf=c.inf;
-      toast(inf.eq==='macro'?`Macrogotas = volume ÷ (horas × 3) → ${inf.vol} ÷ (${fmt(inf.min/60)} × 3)`:`Microgotas = volume ÷ horas → ${inf.vol} ÷ ${fmt(inf.min/60)}`,'info');},{w:250,h:64,size:20,color:0x557178,dark:0x3A4E53});this.calcBtn.setDepth(61);}
+    this.confBtn=button(s,1245,700,'Confirmar',()=>this.confirmRate(),{w:170,h:64,size:22});this.confBtn.setDepth(61);
+    const adj=d=>{if(B.ok)return;B.rate=Phaser.Math.Clamp(B.rate+d,0,B.micro?300:150);B.open=B.rate>0;};
+    this.minusBtn=button(s,1203,610,'−',()=>adj(-1),{w:90,h:70,size:40,color:0x557178,dark:0x3A4E53}).setDepth(61);
+    this.plusBtn=button(s,1290,610,'+',()=>adj(1),{w:80,h:70,size:40,color:0x557178,dark:0x3A4E53}).setDepth(61);
+    this.adjT=T(s,1247,556,'ajuste fino',20,'#3B5A60').setDepth(61);
+    this.calcBtn=button(s,852,700,'Como calcular? (−3)',()=>{note(this.R,'warn','Consultou a fórmula do gotejamento.',-3,'formula');const inf=c.inf;
+      toast(inf.eq==='macro'?`Macrogotas = volume ÷ (horas × 3) → ${inf.vol} ÷ (${fmt(inf.min/60)} × 3)`:`Microgotas = volume ÷ horas → ${inf.vol} ÷ ${fmt(inf.min/60)}`,'info');},{w:220,h:64,size:19,color:0x557178,dark:0x3A4E53});this.calcBtn.setDepth(61);}
   confirmRate(){const B=this.st.bag,c=this.c,inf=c.inf;if(B.ok)return;if(!this.guide.can('regular'))return;
     if(B.rate<=0){toast('O rolete está fechado: deslize a roda para cima.','warn');return;}
     const target=Math.round(inf.vol*(inf.eq==='macro'?20:60)/inf.min),un=inf.eq==='macro'?'gotas/min':'microgotas/min',d=Math.abs(B.rate-target)/target;
     if(d<=.1)note(this.R,true,`Gotejamento em ${B.rate} ${un} (correto: ${target}).`);
     else note(this.R,d<=.25?'warn':false,`Gotejamento em ${B.rate} ${un}; o correto era ${target} ${un} (${inf.vol} ml em ${tempoTxt(inf.min)}). ${B.rate>target?'Rápido demais: risco de sobrecarga.':'Lento demais: atrasa o tratamento e pode obstruir o acesso.'}`,d<=.25?-4:-10);
-    B.ok=true;this.confBtn.setVisible(false);this.calcBtn.setVisible(false);this.guide.complete('regular');}
+    B.ok=true;this.confBtn.setVisible(false);this.calcBtn.setVisible(false);this.minusBtn.setVisible(false);this.plusBtn.setVisible(false);this.adjT.setVisible(false);this.guide.complete('regular');}
   update(time,dt){if(!this.ready)return;const st=this.st,B=st.bag,g=this.eqG;
     // câmara enchendo
     if(this.holding&&B.spiked)B.ch=Math.min(1,B.ch+dt/1000*.32);
-    if(B.open&&B.spiked&&B.ch>0&&!B.primed&&!B.conn){B.front=Math.min(1,B.front+dt/3200);if(B.front>=1){B.spillT+=dt;if(B.spillT>900)note(this.R,'warn','O soro escorreu pela ponta: feche o rolete assim que o ar sair.',-2,'spill2');}}
+    if(B.open&&B.spiked&&B.ch>0&&!B.primed&&!B.conn){B.front=Math.min(1,B.front+dt/3200);if(B.front>=1){B.spillT+=dt;if(B.spillT>1600)note(this.R,'warn','O soro escorreu pela ponta: feche o rolete assim que o ar sair.',-2,'spill2');}}
     // desenho do equipo
     g.clear();
     if(B.eq){const sx=1060,tip=B.spiked?330:(this.spikeDrag!==undefined?this.spikeDrag:430),chT=tip+40,chB=tip+190;
@@ -1115,25 +1155,500 @@ class BedS extends Phaser.Scene{
     // destaques do treino
     const h=this.hl,hu=this.hlUI;h.clear();hu.clear();if(LEVEL!=='treino'||!this.guide)return;const c=this.guide.cur();if(!c)return;
     const a=.45+.4*Math.sin(time/170);h.lineStyle(7,0xFFC43D,a);hu.lineStyle(6,0xFFC43D,a);
-    const ring=(x,y,r)=>h.strokeCircle(x,y,r+6*Math.sin(time/170));const ui=k=>{const d=this.drawer[k];if(d&&!d.C.off&&this.sel!==k)hu.strokeRoundedRect(d.x-70,d.y-54,140,108,18);};
+    const ring=(x,y,r)=>h.strokeCircle(x,y,r+6*Math.sin(time/170));const ui=k=>{const d=this.drawer[k];if(d&&!d.C._dis&&this.sel!==k)hu.strokeRoundedRect(d.x-70,d.y-54,140,108,18);};
     const sx=1060,tip=B.spiked?330:430;
     ({luvas:()=>ui('luvas'),pendurar:()=>this.sel==='soro'?ring(1060,60,60):ui('soro'),rolete:()=>B.eq?ring(sx,700,95):ui('equipo'),perfurar:()=>ring(sx,tip+20,50)||ring(1060,330,30),camara:()=>ring(sx,tip+115,90),ar:()=>ring(sx,700,95),
       garrote:()=>this.sel==='garrote'?ring(300,340,70):ui('garrote'),antissepsia:()=>this.sel==='alcool'?ring(300,520,80):ui('alcool'),puncao:()=>this.sel&&this.sel.startsWith('cat')?(st.rub?ring(st.rub.x,st.rub.y,50):0):ui('cateter'),
       soltar:()=>st.gar&&ring(300,st.gar.y,70),mandril:()=>this.sel==='mandril'?ring(610,790,80):this.mandImg&&ring(this.mandImg.x,this.mandImg.y,50),extensor:()=>this.sel==='extensor'?st.cath&&ring(st.cath.x,st.cath.y+20,50):ui('extensor'),
       teste:()=>this.sel==='sf'?this.port&&ring(this.port.x,this.port.y,45):ui('sf'),fixar:()=>this.sel==='curativo'?st.cath&&ring(st.cath.x,st.cath.y+20,60):ui('curativo'),
-      conectar:()=>this.sel==='ponta'?this.port&&ring(this.port.x,this.port.y,45):ring(640,640,50),regular:()=>ring(sx,700,95),finalizar:()=>hu.strokeRoundedRect(74+4*143-70,DRAWER_Y+112,140,104,18)}[c.id]||(()=>0))();
+      conectar:()=>this.sel==='ponta'?this.port&&ring(this.port.x,this.port.y,45):ring(640,640,50),regular:()=>ring(sx,700,95),administrar:()=>this.sel==='med'?this.port&&ring(this.port.x,this.port.y,45):ui('med'),lavar:()=>this.sel==='sf'?this.port&&ring(this.port.x,this.port.y,45):ui('sf'),finalizar:()=>hu.strokeRoundedRect(74+4*143-70,DRAWER_Y+112,140,104,18)}[c.id]||(()=>0))();
     // aba do lado certo
-    if(c.view&&c.view!==this.view){const i=c.view==='braco'?0:1;hu.strokeRoundedRect(105+i*215-104,12,208,72,18);}
+    if(c.view&&c.view!==this.view){const i=c.view==='braco'?0:1;hu.strokeRoundedRect(85+i*160-79,12,158,72,18);}
   }
   finish(){if(!this.guide.can('finalizar'))return;const st=this.st,R=this.R,B=st.bag;
-    if(!B.ok)note(R,false,'O gotejamento não foi regulado e confirmado.',-10);
+    if(!this.isEV&&!B.ok)note(R,false,'O gotejamento não foi regulado e confirmado.',-10);
+    if(this.isEV){if(!st.given)note(R,false,'A medicação não foi administrada.',-40);else if(!st.flushed)note(R,'warn','Lave o acesso com SF 0,9% após a medicação, para que a dose que ficou no extensor chegue à veia.',-3);}
     if(st.gar)note(R,false,'O garrote ficou no braço do paciente.',-6);
     if(st.cath&&st.mandril)note(R,false,'O mandril não foi descartado no coletor.',-5);
     if(st.cath&&!st.fixed)note(R,'warn','O acesso ficou sem fixação e identificação.',-4);
-    if(st.cath&&!st.tested)note(R,'warn','Teste a permeabilidade com SF 0,9% antes de conectar o soro.',-3);
+    if(st.cath&&!st.tested&&!this.isEV)note(R,'warn','Teste a permeabilidade com SF 0,9% antes de conectar o soro.',-3);
     if(!st.cath)note(R,false,'A punção venosa não foi feita.',-30);
     this.guide.complete('finalizar');endCase();}
 }
+
+
+/* ================= MODO: EV EM SERINGA ================= */
+D.tenoxicam.recon=2; D.ceftriaxona.recon=10;
+D.furosemida.tmin=2; D.diazepam.tmin=2;
+const RISCO_RAPIDO={dipirona:'Dipirona rápida pode causar hipotensão.',furosemida:'Furosemida rápida aumenta o risco de ototoxicidade.',diazepam:'Diazepam rápido pode causar depressão respiratória e flebite.',metoclopramida:'Metoclopramida rápida causa ansiedade e agitação.',biperideno:'A tabela indica biperideno em 3 minutos.'};
+const round1=n=>Math.round(n*10)/10;
+
+/* ---------- MINIGAME: aspirar (retrato) ---------- */
+function aspirePanelP(s,{cap,base,liq,title,maxMl,hint},cb){
+  $('#gToast').innerHTML='';
+  const step={3:.1,5:.2,10:.5,20:1}[cap];
+  const C=s.add.container(0,0).setDepth(300).setScrollFactor(0);
+  C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.65).setInteractive());
+  const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(16,170,688,760,28);C.add(pg);
+  C.add(T(s,360,226,title,34,'#0F3238',{display:true,wrap:640}));
+  C.add(T(s,360,290,hint||`Seringa de ${cap} ml. Arraste o círculo azul para a direita para puxar o êmbolo.`,21,'#557178',{w:'700',wrap:620}));
+  const L=260,k=L/SYR[cap][0],gx=240,y=450,x0=-L/2,D2=SYR[cap][1]*k/2;
+  const g=s.add.graphics();g.x=gx;g.y=y;C.add(g);
+  const tk=s.add.graphics();C.add(tk);tk.lineStyle(2,0x557178,1);
+  const major=cap===20?5:cap===10?2:1,n=Math.round(cap/step);
+  for(let i=0;i<=n;i++){const v=i*step,x=gx+x0+v/cap*L,isM=Math.abs(v/major-Math.round(v/major))<1e-6;tk.lineBetween(x,y+D2+6,x,y+D2+(isM?24:12));if(isM)C.add(T(s,x,y+D2+42,String(Math.round(v)),18,'#557178'));}
+  const lo=base,hi=Math.min(cap,base+maxMl);let tot=base;
+  const thumb=5*k+L+6*k+3.5*k;
+  const knob=s.add.circle(0,y,36,0x2D7FD3,.22).setStrokeStyle(5,0x2D7FD3);C.add(knob);
+  const hand=T(s,0,y-70,'puxe ⇢',20,'#2D7FD3');C.add(hand);
+  const reading=T(s,360,610,'',40,'#2D7FD3',{display:true});C.add(reading);
+  const sub=T(s,360,658,'',22,'#557178',{w:'700'});C.add(sub);
+  const draw=()=>{drawSyr(g,cap,tot,null,liq,k);knob.x=gx+x0+tot/cap*L+thumb;hand.x=knob.x;
+    reading.setText(`+ ${fmt(round1(tot-base))} ml`);sub.setText(`Total na seringa: ${fmt(round1(tot))} ml`+(hi<cap-1e-6&&tot>=hi-1e-6?' · acabou o conteúdo':''));};
+  const setX=x=>{const raw=(x-thumb-gx-x0)/L*cap;let t=Math.round(raw/step)*step;if(raw>=hi-step*.5)t=hi;tot=Phaser.Math.Clamp(t,lo,hi);draw();};
+  let grab=null;const zone=s.add.zone(360,y,700,230).setInteractive({useHandCursor:true});C.add(zone);
+  zone.on('pointerdown',p=>{grab=p.x-knob.x;});zone.on('pointermove',p=>{if(grab!==null&&p.isDown)setX(p.x-grab);});
+  zone.on('pointerup',()=>{grab=null;});zone.on('pointerout',()=>{grab=null;});
+  C.add(T(s,360,y+D2+80,'Arraste em qualquer ponto desta faixa',17,'#8EA3A8',{w:'700'}));
+  draw();
+  C.add(button(s,215,820,'Cancelar',()=>{C.destroy();cb(0);},{w:230,h:76,size:26,color:0x8EA3A8,dark:0x5E7378}));
+  C.add(button(s,500,820,'Aspirar',()=>{C.destroy();cb(round1(tot-base)>0?tot-base:0);},{w:280,h:76,size:28}));
+  return C;
+}
+
+/* ---------- MINIGAME: injetar devagar (retrato) ---------- */
+const mmss=sec=>{sec=Math.round(sec);return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;};
+function injectPanelP(s,{cap,vol,p,name,tmin,liq,title,target},cb){
+  $('#gToast').innerHTML='';
+  const C=s.add.container(0,0).setDepth(300).setScrollFactor(0);
+  C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.65).setInteractive());
+  const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(16,40,688,1050,28);C.add(pg);
+  C.add(T(s,360,96,title||'Injete devagar',40,'#0F3238',{display:true}));
+  C.add(T(s,360,146,`${name} · ${fmt(round1(vol))} ml`,24,'#557178',{w:'700'}));
+  C.add(T(s,360,186,LEVEL==='prova'?'Arraste o círculo azul para empurrar o êmbolo.':`Mantenha o marcador na faixa verde. Tempo mínimo: ${mmss(tmin*60)}.`,21,'#557178',{w:'700',wrap:620}));
+  const L=240,k=L/SYR[cap][0],gx=300,y=300;
+  const tube=s.add.graphics();C.add(tube);const tipX=gx-L/2-5*k;
+  if(target==='musculo'){tube.fillStyle(HEX(PELE[p.pele].mid),1);tube.fillRoundedRect(30,y-70,110,140,30);tube.fillStyle(0xE7807C,1);tube.fillRoundedRect(60,y-50,70,100,20);
+    tube.fillStyle(0x9AA8B2,1);tube.fillRect(90,y-2,tipX-90,4);C.add(T(s,85,y+90,'músculo',18,'#557178'));}
+  else{tube.lineStyle(12,0xF4FAFD,1);tube.lineBetween(50,y,tipX,y);tube.lineStyle(2,0xB9D3E0,1);tube.lineBetween(50,y-6,tipX,y-6);tube.lineBetween(50,y+6,tipX,y+6);
+    tube.fillStyle(0xD9403A,1);tube.fillRoundedRect(tipX-26,y-14,26,28,6);C.add(T(s,90,y+40,'extensor',18,'#557178'));}
+  const g=s.add.graphics();g.x=gx;g.y=y;C.add(g);
+  const face=drawFace(s,360,480,p,72);C.add(face);
+  const clock=T(s,360,600,'',28,'#0F3238',{display:true});C.add(clock);
+  const qty=T(s,360,638,'',21,'#557178',{w:'700'});C.add(qty);
+  const ideal=vol/(tmin*60),maxRate=ideal*3,green=ideal*1.15,SPEED=target==='musculo'?4:15;
+  const mx=80,mw=560,my=690,gf=green/maxRate;
+  const mg=s.add.graphics();C.add(mg);mg.fillStyle(0x1E9A55,.9);mg.fillRect(mx,my,mw*gf,40);mg.fillStyle(0xD9403A,.9);mg.fillRect(mx+mw*gf,my,mw*(1-gf),40);
+  C.add(T(s,mx+mw*gf/2,my+20,'Lento ✓',22,'#fff',{display:true}));C.add(T(s,mx+mw*(1+gf)/2,my+20,'Rápido demais',22,'#fff',{display:true}));
+  const mk=s.add.triangle(mx,my-12,0,0,26,0,13,18,0x0F3238);C.add(mk);
+  const sx0=110,sw=500,sy=860;
+  const tr=s.add.graphics();tr.fillStyle(0xD3E3E5,1);tr.fillRoundedRect(sx0,sy-10,sw,20,10);C.add(tr);
+  C.add(T(s,360,sy+62,'Arraste para a direita para empurrar. Solte para parar.',20,'#557178',{w:'700'}));
+  C.add(T(s,sx0,sy-44,'parado',18,'#557178'));C.add(T(s,sx0+sw,sy-44,'força máxima',18,'#557178'));
+  const knob=s.add.circle(sx0,sy,40,0x2D7FD3).setStrokeStyle(6,0xffffff);C.add(knob);
+  let f=0,rem=vol,sim=0,fast=0,last=performance.now(),done=false,grab=null;
+  const zone=s.add.zone(360,sy,700,170).setInteractive({useHandCursor:true});C.add(zone);
+  const setX=x=>{if(done)return;x=Phaser.Math.Clamp(x,sx0,sx0+sw);knob.x=x;f=(x-sx0)/sw;};
+  const rel=()=>{if(grab===null)return;grab=null;f=0;s.tweens.add({targets:knob,x:sx0,duration:180});};
+  zone.on('pointerdown',p=>{grab=p.x-knob.x;});zone.on('pointermove',p=>{if(grab!==null&&p.isDown)setX(p.x-grab);});
+  zone.on('pointerup',rel);zone.on('pointerout',rel);
+  const draw=()=>{drawSyr(g,cap,rem,null,liq,k);
+    clock.setText(`Tempo: ${mmss(sim)}  ·  mínimo ${mmss(tmin*60)}`);
+    qty.setText(`${fmt(round1(vol-rem))} de ${fmt(round1(vol))} ml injetados`);};
+  draw();
+  const ev=s.time.addEvent({delay:50,loop:true,callback:()=>{const now=performance.now(),dt=Math.min(.25,(now-last)/1000);last=now;if(done)return;
+    const rate=f*maxRate;if(f>0)sim+=dt*SPEED;const dml=Math.min(rem,rate*dt*SPEED);rem-=dml;if(rate>green)fast+=dml;
+    mk.x=mx+Math.min(1,f)*mw;face.setMood(rate>green?'pain':'calm');draw();
+    if(rem<=1e-4){done=true;ev.remove();C.add(T(s,360,990,'Medicação administrada.',30,'#1E9A55',{display:true}));
+      s.time.delayedCall(900,()=>{C.destroy();cb({fastFrac:fast/vol,simMin:sim/60});});}}});
+  return C;
+}
+function speedNotes(R,res,key,secs){const ff=res.fastFrac;
+  if(ff>.3)note(R,false,`Injeção rápida demais (${Math.round(ff*100)}% do volume acima do ritmo seguro). ${RISCO_RAPIDO[key]||'Injeção rápida aumenta o risco de dor, reações adversas e lesão do tecido.'}`,-12);
+  else if(ff>.08)note(R,'warn',`Parte da injeção foi rápida (${Math.round(ff*100)}% do volume). Mantenha o ritmo lento e constante.`,-4);
+  else note(R,true,secs?`Injeção lenta e contínua, em ${mmss(res.simMin*60)}.`:`Administração lenta e contínua, em ${fmt(round1(res.simMin))} min.`);}
+
+/* ---------- CENA: sala de preparo (EV em seringa, EV em bolsa, IM) ---------- */
+D.hidrocortisona.reconB=20; D.azitromicina.reconB=5; D.amoxclav.reconB=20;
+const POOL={ev_ser:EV_SER,ev_bol:EV_BOL.filter(k=>k!=='tiaminab12'),im:IMS.filter(k=>k!=='ceftriaxona')};
+const bagVol=sp=>sp.dil==='ABD+SF'?sp.bolsa:sp.vol;
+const recIM=c=>(c.p.peso>=85||c.key==='benzetacil')?'30x8':'30x7';
+const okIM=(c,k)=>k==='30x8'||k==='30x7'||k==='25x7';
+class PrepEV extends Phaser.Scene{
+  constructor(){super('PrepEV');}
+  create(d){const s=this,c=this.c=d.c;this.R=d.R;
+    const d0=c.d,M=this.mode=c.tipo,sp=c.spec;
+    this.fr=d0.apres==='frasco';this.bol=M==='ev_bol';this.im=M==='im';
+    this.dil=M==='ev_ser'&&sp.dil==='ABD';
+    this.rc=this.fr?(M==='ev_ser'?d0.recon:M==='ev_bol'?d0.reconB:sp.vol):0;
+    this.reconFinal=this.im&&this.fr?(sp.final||sp.vol):null;
+    this.need=this.dil?20:this.fr?(this.reconFinal||this.rc):d0.volIM;
+    this.ideal=this.dil?20:[3,5,10,20].find(x=>x>=this.need-1e-6);
+    this.needABD=this.dil||this.fr;
+    this.bench=[];this.syr=null;this.bag=null;this.sel=null;this.maos=false;this.reconV=0;this.reconSF=false;this.reconContent=0;this.syrCapUsed=null;this.aspNeedle=null;
+    const bg=s.add.graphics();bg.fillStyle(0xE6F6F3,1);bg.fillRect(0,0,GW,GH);
+    bg.fillStyle(0xffffff,.65);bg.fillRoundedRect(16,24,688,500,22);
+    bg.fillStyle(0x9FB1BB,1);bg.fillRect(16,258,688,10);bg.fillRect(16,432,688,10);
+    bg.fillStyle(0xC9D6DE,1);bg.fillRoundedRect(16,546,688,440,22);bg.fillStyle(0xffffff,.8);bg.fillRect(30,558,660,6);
+    T(s,36,46,'PRATELEIRA',20,'#557178',{ox:0});T(s,36,582,'BANCADA',20,'#557178',{ox:0});
+    // medicamentos
+    this.shelfMed={};
+    shuffle([c.key,...shuffle(POOL[M].filter(k=>k!==c.key)).slice(0,3)]).forEach((k,i)=>{const dd=D[k],x=100+i*173;
+      const o=s.add.container(x,132,[s.add.image(0,0,dd.apres==='frasco'?'frasco':'ampola').setScale(1.05)]).setSize(130,150).setInteractive({useHandCursor:true});
+      T(s,x,226,`${nm(dd)}\n${dd.apres==='frasco'?dd.dose+' · pó':dd.dose}`,nm(dd).length>16?15:18,'#0F3238',{wrap:165});o.on('pointerup',()=>this.tapShelf({kind:'med',key:k}));this.shelfMed[k]=o;});
+    // diluentes / bolsas
+    const dl=(kind,x,tex,lab)=>{const o=s.add.container(x,334,[s.add.image(0,0,tex).setScale(.85)]).setSize(90,120).setInteractive({useHandCursor:true});T(s,x,410,lab,18,'#0F3238');o.on('pointerup',()=>this.tapShelf({kind}));return o;};
+    this.shelfABD=dl('abd',62,'abd','ABD\n10 ml');
+    this.shelfBag={};
+    if(this.bol){shuffle([['SF 0,9%',100],['SF 0,9%',250],['SG 5%',250]]).forEach(([sol,vol],i)=>{const x=155+i*88;
+        const o=s.add.container(x,326,[s.add.image(0,0,'bag').setScale(.5)]).setSize(80,110).setInteractive({useHandCursor:true});T(s,x,404,`${sol}\n${vol} ml`,15,'#0F3238');
+        o.on('pointerup',()=>this.tapShelf({kind:'bag',sol,vol}));this.shelfBag[sol+vol]=o;});}
+    else this.shelfSF=dl('sf',165,'kit','SF 0,9%\n10 ml');
+    // seringas
+    this.shelfSyr={};const sxs=this.bol?[465,618]:[360,560],sk=this.bol?.55:.75;
+    [3,5,10,20].forEach((cap,i)=>{const x=sxs[i%2],y=i<2?300:378;const g=s.add.graphics();drawSyr(g,cap,0,null,LIQ_DIL,sk);
+      const o=s.add.container(x,y,[g,T(s,0,30,`seringa ${cap} ml`,this.bol?15:17,'#0F3238')]).setSize(this.bol?140:180,72).setInteractive({useHandCursor:true});o.on('pointerup',()=>this.tapShelf({kind:'syr',cap}));this.shelfSyr[cap]=o;});
+    // agulhas e etiqueta
+    this.shelfNd={};
+    const nds=this.im?['40x12','30x7','25x7','30x8','13x4,5']:['40x12','25x7','13x4,5'];
+    nds.forEach((k,i)=>{const x=this.im?62+i*112:95+i*160;const o=s.add.container(x,474,[s.add.image(0,0,'nd_'+k).setScale(this.im?.78:1.05),T(s,0,32,(this.im?'':'agulha ')+k.replace('x',' × '),this.im?16:17,'#0F3238')]).setSize(this.im?108:150,66).setInteractive({useHandCursor:true});
+      o.on('pointerup',()=>this.tapShelf({kind:'needle',key:k}));this.shelfNd[k]=o;});
+    const eg=s.add.graphics();eg.fillStyle(0xffffff,1);eg.fillRoundedRect(-44,-22,88,40,6);eg.lineStyle(2,0x9FB1BB,1);eg.strokeRoundedRect(-44,-22,88,40,6);eg.fillStyle(0xE8962A,1);eg.fillRect(-44,-22,14,40);eg.fillStyle(0x9FB1BB,1);[-10,0,10].forEach(yy=>eg.fillRect(-24,yy-2,58,4));
+    this.etiq=s.add.container(this.im?648:605,466,[eg,T(s,0,40,'etiqueta',17,'#0F3238')]).setSize(this.im?96:130,80).setInteractive({useHandCursor:true});this.etiq.on('pointerup',()=>this.tapShelf({kind:'label'}));
+    // bancada
+    this.sharps=s.add.container(632,690,[s.add.image(0,0,'sharps').setScale(.72),T(s,0,78,'coletor',17,'#3B5A60')]).setSize(120,150).setInteractive({useHandCursor:true});
+    this.sharps.on('pointerup',()=>this.tapSharps());
+    this.syrG=s.add.graphics();this.syrC=s.add.container(300,880,[this.syrG]).setSize(440,90).setInteractive({useHandCursor:true}).setVisible(false);
+    this.syrC.on('pointerup',()=>{if(!this.syr)return;this.setSel(this.sel==='syr'?null:'syr');});
+    this.syrT=T(s,300,940,'',19,'#0F3238',{w:'700'});
+    this.selLabel=T(s,360,1002,'',22,'#0F3238').setBackgroundColor('#FFC43D').setPadding(14,4,14,4).setDepth(80).setVisible(false);
+    this.piaBtn=button(s,180,1062,'Higienizar mãos',()=>this.wash(),{w:320,h:80,size:24,color:0x2D7FD3,dark:0x1F5EA3});
+    this.goBtn=button(s,535,1062,'Levar ao leito ▶',()=>this.levar(),{w:330,h:80,size:26});
+    this.selG=s.add.graphics().setDepth(70);this.hl=s.add.graphics().setDepth(71);
+    // roteiro
+    const fr=this.fr,rc=this.rc,amp=fr?'o frasco':'a ampola';
+    const st=[['prep','maos','Higienize as mãos','Toque em Higienizar mãos.'],
+      ['prep','med','Separe a medicação prescrita',`Na prateleira, toque em ${nm(d0)}. Confira nome e dose com a prescrição.`]];
+    if(this.needABD)st.push(['prep','dil','Separe o diluente',this.dil?'A tabela indica ABD. Toque em ABD 10 ml duas vezes: você vai precisar de 2 ampolas.':`Para reconstituir o pó, toque em ABD 10 ml${rc>10?' duas vezes (vai precisar de '+rc+' ml)':''}.`]);
+    if(this.bol)st.push(['prep','bolsa','Separe a bolsa de soro',`A tabela indica: ${descr(sp)}. Toque na bolsa certa.`]);
+    st.push(['prep','ser','Separe a seringa',this.dil?'Para diluir em 20 ml, toque na seringa de 20 ml.':`Para ${fmt(this.need)} ml, toque na seringa de ${this.ideal} ml.`],
+      ['prep','agu','Encaixe a agulha de aspiração','Toque na agulha 40 × 12: ela é encaixada na seringa.'],
+      ['prep','abrir',fr?'Abra o frasco':'Abra a ampola',fr?'Toque no frasco na bancada: o lacre sai e a borracha é desinfetada.':'Toque na ampola na bancada para quebrar o gargalo.']);
+    if(fr)st.push(['prep','aspabd','Aspire ABD para reconstituir',`Toque numa ampola de ABD para abrir. Depois toque na seringa e na ampola e aspire ${rc} ml.`],
+      ['prep','recon','Injete o ABD no frasco','Com a seringa na mão, toque no frasco.'],
+      ['prep','agitar','Agite o frasco','Toque no frasco para agitar até dissolver o pó.']);
+    st.push(['prep','asp',fr?'Aspire todo o conteúdo do frasco':'Aspire a medicação',`Toque na seringa e depois ${fr?'no frasco':'na ampola'}. Puxe o êmbolo até acabar o conteúdo.`]);
+    if(this.dil)st.push(['prep','completar','Complete com ABD até 20 ml','Abra uma ampola de ABD (toque nela). Toque na seringa e depois no ABD e puxe até 20 ml.']);
+    if(this.bol)st.push(['prep','injbolsa','Injete na bolsa','Com a seringa na mão, toque na bolsa: o injetor é desinfetado e a medicação vai para o soro.'],
+      ['prep','homog','Homogeneíze a bolsa','Toque na bolsa para misturar a medicação ao soro.']);
+    if(this.im){const r=recIM(c).replace('x',' × ');
+      st.push(['prep','descarte','Retire a agulha de aspiração','Toque na seringa e depois no coletor: a 40 × 12 não serve para aplicar.'],
+        ['prep','agulhaIM','Encaixe a agulha de aplicação',`Paciente de ${c.p.peso} kg${c.key==='benzetacil'?', suspensão viscosa':''}: toque na agulha ${r}.`]);}
+    else st.push(['prep','descarte',this.bol?'Descarte seringa e agulha':'Descarte a agulha de aspiração',`Toque na seringa e depois no coletor amarelo.`]);
+    st.push(['prep','rotulo',this.bol?'Identifique a bolsa':'Identifique a seringa','Toque na etiqueta da prateleira.'],['prep','levar','Leve ao leito','Toque em Levar ao leito.']);
+    this.guide=new Guide(this,st);
+  }
+  setSel(k){this.sel=k;this.selLabel.setText(k&&this.syr?`Na mão: seringa ${this.syr.cap} ml · toque nela de novo para soltar`:'').setVisible(!!k&&!!this.syr);this.drawSyrB();}
+  wash(){if(this.maos){toast('Mãos já higienizadas.');return;}if(!this.guide.can('maos'))return;this.maos=true;toast('Mãos higienizadas.','ok');this.guide.complete('maos');}
+  slotPos(i){return {x:72+i*112,y:672};}
+  addBench(it){const s=this;if(this.bench.length>=5){toast('A bancada está cheia.','warn');return null;}
+    const i=this.bench.length,p=this.slotPos(i);
+    it.img=s.add.image(0,0,it.tex).setScale(.95);it.lab=T(s,0,84,it.label,16,'#0F3238');
+    it.C=s.add.container(p.x,p.y,[it.img,it.lab]).setSize(100,170).setInteractive({useHandCursor:true});it.C.on('pointerup',()=>this.tapBench(it));
+    this.bench.push(it);return it;}
+  layoutBench(){this.bench.forEach((b,i)=>{const p=this.slotPos(i);this.tweens.add({targets:b.C,x:p.x,y:p.y,duration:220});});}
+  syrTotal(){const y=this.syr;return y?y.drug+y.abd+y.sf:0;}
+  drawSyrB(){const y=this.syr,g=this.syrG,sg=this.selG;sg.clear();if(!y){g.clear();this.syrT.setText('');this.syrC.setVisible(false);return;}const k=160/SYR[y.cap][0],tot=this.syrTotal();
+    drawSyr(g,y.cap,tot,y.needle,y.drug>0?LIQ_DRUG:LIQ_DIL,k);
+    if(y.labeled){g.fillStyle(0xffffff,.95);g.fillRect(-60,-SYR[y.cap][1]*k/2-2,64,SYR[y.cap][1]*k+4);g.fillStyle(0xE8962A,1);g.fillRect(-60,-SYR[y.cap][1]*k/2-2,8,SYR[y.cap][1]*k+4);g.fillStyle(0x9FB1BB,1);g.fillRect(-46,-6,44,3);g.fillRect(-46,2,34,3);}
+    const parts=[];if(y.drug>0)parts.push(`medicação ${fmt(round1(y.drug))}`);if(y.abd>0)parts.push(`ABD ${fmt(round1(y.abd))}`);if(y.sf>0)parts.push(`SF ${fmt(round1(y.sf))}`);
+    this.syrT.setText(`Seringa ${y.cap} ml${parts.length?': '+parts.join(' + ')+` = ${fmt(round1(tot))} ml`:' · vazia'}${y.needle?' · agulha '+y.needle.replace('x',' × '):' · sem agulha'}`);
+    if(this.sel==='syr'){sg.lineStyle(6,0xFFC43D,1);sg.strokeRoundedRect(70,830,460,100,18);}}
+  drawBag(){const b=this.bag;if(!b)return;b.ov.clear();if(b.drug>0){b.ov.fillStyle(0xF0A848,b.homog?.35:.6);b.ov.fillRoundedRect(-24,-10,48,b.homog?50:20,8);}
+    if(b.labeled){b.ov.fillStyle(0xffffff,1);b.ov.fillRect(-28,10,56,26);b.ov.fillStyle(0xE8962A,1);b.ov.fillRect(-28,10,8,26);b.ov.fillStyle(0x9FB1BB,1);b.ov.fillRect(-16,17,38,3);b.ov.fillRect(-16,26,28,3);}}
+  tapShelf(o){const c=this.c,tr=LEVEL==='treino',sp=c.spec;
+    if(o.kind==='med'){if(!this.guide.can('med'))return;
+      if(tr&&o.key!==c.key){toast(`Confira o nome: a prescrição é de ${nm(c.d)}.`,'warn');return;}
+      if(this.bench.some(b=>b.kind==='med'&&b.key===o.key)){toast('Já está na bancada.');return;}
+      const dd=D[o.key],fr=dd.apres==='frasco';
+      if(!this.addBench({kind:'med',key:o.key,fr,open:false,ml:fr?0:dd.volIM,powder:fr,mixed:false,tex:fr?'frasco':'ampola',label:nm(dd)}))return;
+      toast(`${nm(dd)} na bancada. Confira nome, dose e validade.`,'ok');this.guide.complete('med');return;}
+    if(o.kind==='abd'||o.kind==='sf'){if(!this.guide.can('dil'))return;
+      if(tr&&(!this.needABD||o.kind==='sf')){toast(this.needABD?'A tabela indica ABD (água bidestilada).':`${nm(c.d)} não precisa de diluente: a tabela indica somente a ampola.`,'warn');return;}
+      if(this.bench.filter(b=>b.kind==='abd'||b.kind==='sf').length>=3){toast('Já há diluente suficiente na bancada.');return;}
+      if(!this.addBench({kind:o.kind,open:false,ml:10,tex:o.kind==='abd'?'abd':'kit',label:o.kind==='abd'?'ABD 10 ml':'SF 10 ml'}))return;
+      toast(`${o.kind==='abd'?'ABD':'SF 0,9%'} 10 ml na bancada.`,'ok');this.guide.complete('dil');return;}
+    if(o.kind==='bag'){if(!this.guide.can('bolsa'))return;const ok=o.sol==='SF 0,9%'&&o.vol===bagVol(sp);
+      if(tr&&!ok){toast(`A tabela indica: ${descr(sp)}.`,'warn');return;}
+      if(this.bag){if(this.bag.drug>0){toast('A bolsa da bancada já tem medicação.','warn');return;}this.bag.C.destroy();}
+      const ov=this.add.graphics();
+      const C=this.add.container(618,880,[this.add.image(0,0,'bag').setScale(.55),ov,T(this,0,64,`${o.sol} ${o.vol} ml`,15,'#0F3238')]).setSize(110,140).setInteractive({useHandCursor:true});
+      this.bag={kind:'bag',open:true,sol:o.sol,vol:o.vol,drug:0,drugKey:null,extra:0,homog:false,labeled:false,C,ov,img:C.list[0]};
+      C.on('pointerup',()=>this.tapBench(this.bag));toast(`Bolsa de ${o.sol} ${o.vol} ml na bancada.`,'ok');this.guide.complete('bolsa');return;}
+    if(o.kind==='syr'){if(!this.guide.can('ser'))return;
+      if(tr&&o.cap!==this.ideal){toast(o.cap<this.need?`Não cabe: você vai precisar de ${fmt(this.need)} ml.`:`Use a seringa de ${this.ideal} ml: a menor que comporta ${fmt(this.need)} ml dá mais precisão.`,'warn');return;}
+      if(this.syr&&this.syrTotal()>0){toast('A seringa da bancada já está em uso.','warn');return;}
+      this.syr={cap:o.cap,needle:this.syr?this.syr.needle:null,drug:0,abd:0,sf:0,drugKey:null,labeled:false};this.syrCapUsed=o.cap;
+      this.syrC.setVisible(true);this.drawSyrB();toast(`Seringa de ${o.cap} ml na bancada.`,'ok');this.guide.complete('ser');return;}
+    if(o.kind==='needle'){if(!this.syr){toast('Separe a seringa primeiro.','warn');return;}
+      const y=this.syr;
+      if(this.im&&y.discarded){if(y.needle){toast('A seringa já tem agulha.');return;}if(!this.guide.can('agulhaIM'))return;
+        if(tr&&!okIM(this.c,o.key)){toast(o.key==='13x4,5'?'13 × 4,5 é agulha de via subcutânea: não alcança o músculo.':'40 × 12 é agulha de aspiração: calibrosa demais para aplicar.','warn');return;}
+        if(tr&&o.key!==recIM(this.c)&&recIM(this.c)==='30x8'){toast(`Paciente de ${this.c.p.peso} kg${this.c.key==='benzetacil'?' e suspensão viscosa':''}: use 30 × 8.`,'warn');return;}
+        y.needle=o.key;y.app=o.key;this.drawSyrB();toast(`Agulha de aplicação ${o.key.replace('x',' × ')} encaixada.`,'ok');this.guide.complete('agulhaIM');return;}
+      if(!this.guide.can('agu'))return;
+      if(tr&&o.key!=='40x12'){toast('Para aspirar, use a agulha 40 × 12: o calibre maior facilita a aspiração.','warn');return;}
+      y.needle=o.key;this.aspNeedle=o.key;this.drawSyrB();toast(`Agulha ${o.key.replace('x',' × ')} encaixada na seringa.`,'ok');this.guide.complete('agu');return;}
+    if(o.kind==='label'){
+      if(this.bol){if(!this.bag||this.bag.drug<=0){toast('Injete a medicação na bolsa antes de identificá-la.','warn');return;}if(!this.guide.can('rotulo'))return;
+        this.bag.labeled=true;this.drawBag();toast(`Etiqueta: ${c.p.n} · Leito ${c.leito} · ${nm(c.d)} ${c.d.dose} em ${this.bag.sol} ${this.bag.vol} ml · EV · ${c.hora} · correr em ${tempoTxt(sp.tempo)}`,'ok');this.guide.complete('rotulo');return;}
+      if(!this.syr||this.syr.drug<=0){toast('Aspire a medicação antes de identificar a seringa.','warn');return;}if(!this.guide.can('rotulo'))return;
+      this.syr.labeled=true;this.drawSyrB();toast(`Etiqueta: ${c.p.n} · Leito ${c.leito} · ${nm(c.d)} ${c.d.dose} · ${c.via} · ${c.hora}`,'ok');this.guide.complete('rotulo');}
+  }
+  tapBench(b){
+    if(this.sel==='syr'){this.useSyrOn(b);return;}
+    if(b.kind==='bag'){if(b.drug>0&&!b.homog){if(!this.guide.can('homog'))return;b.homog=true;this.drawBag();
+        this.tweens.add({targets:b.C,angle:{from:-10,to:10},duration:120,yoyo:true,repeat:3,onComplete:()=>b.C.setAngle(0)});toast('Bolsa homogeneizada: medicação misturada ao soro.','ok');this.guide.complete('homog');return;}
+      toast(b.drug>0?'Bolsa pronta.':'Toque na seringa com a medicação e depois na bolsa para injetar.');return;}
+    if(!b.open){if(b.kind==='med'&&!this.guide.can('abrir'))return;b.open=true;
+      if(b.kind==='med'){if(!b.fr)b.img.setTexture('ampolaQ');toast(b.fr?'Lacre removido e borracha desinfetada com álcool 70%.':'Ampola aberta: gargalo protegido com algodão ao quebrar.','ok');this.guide.complete('abrir');}
+      else{b.img.setTexture(b.kind==='abd'?'abdQ':'kitQ');toast('Ampola aberta.','ok');}return;}
+    if(b.kind==='med'&&b.fr&&!b.powder&&!b.mixed){if(!this.guide.can('agitar'))return;b.mixed=true;
+      this.tweens.add({targets:b.img,angle:{from:-14,to:14},duration:90,yoyo:true,repeat:5,onComplete:()=>b.img.setAngle(0)});toast('Frasco agitado em movimentos circulares até dissolver o pó.','ok');this.guide.complete('agitar');return;}
+    toast(this.syr?'Toque na seringa para pegá-la e depois aqui para aspirar.':'Separe uma seringa na prateleira.');}
+  useSyrOn(b){const y=this.syr,c=this.c,R=this.R;
+    if(!y.needle){toast(this.im&&y.discarded?'Encaixe a agulha de aplicação.':'Encaixe a agulha de aspiração (40 × 12) na seringa.','warn');return;}
+    if(b.kind==='bag'){if(y.drug<=0){toast('Aspire a medicação antes de injetar na bolsa.','warn');return;}if(!this.guide.can('injbolsa'))return;
+      b.drug+=y.drug;b.drugKey=b.drugKey&&b.drugKey!==y.drugKey?'mix':y.drugKey;b.extra+=y.abd+y.sf;y.drug=0;y.abd=0;y.sf=0;y.injected=true;
+      this.setSel(null);this.drawBag();toast('Injetor da bolsa desinfetado com álcool 70% e medicação injetada.','ok');this.guide.complete('injbolsa');return;}
+    if(this.im&&y.discarded){toast('Com a agulha de aplicação não se aspira mais: leve a seringa ao leito.','warn');return;}
+    if(!b.open){toast(b.fr?'Remova o lacre primeiro: solte a seringa e toque no frasco.':'Abra a ampola primeiro: solte a seringa e toque na ampola.','warn');return;}
+    if(b.kind==='med'&&b.fr&&b.powder){
+      if(y.abd+y.sf<=0){toast('Aspire primeiro o diluente (ABD) para reconstituir o pó.','warn');return;}
+      if(!this.guide.can('recon'))return;
+      this.reconV=y.abd+y.sf;this.reconSF=y.sf>0;b.ml=round1(this.reconFinal?this.reconV*this.reconFinal/this.rc:this.reconV);this.reconContent=b.ml;b.powder=false;y.abd=0;y.sf=0;b.img.setTexture('frascoL');
+      this.setSel(null);toast(`${fmt(round1(this.reconV))} ml injetados no frasco. Agora agite: toque no frasco.`,'ok');this.guide.complete('recon');return;}
+    if(b.kind==='med'&&b.fr&&!b.mixed){if(LEVEL==='treino'){toast('Agite o frasco antes de aspirar: solte a seringa e toque no frasco.','warn');return;}
+      note(R,'warn','Aspirou sem agitar o frasco: o pó pode não ter dissolvido.',-3,'mix');}
+    if(b.ml<=.001){toast('Está vazio.');return;}
+    const isDrug=b.kind==='med',medB=this.bench.find(x=>x.kind==='med'&&x.fr);
+    const stepId=isDrug?'asp':(this.fr&&medB&&medB.powder?'aspabd':'completar');
+    if(!this.guide.can(stepId))return;
+    const tot=this.syrTotal(),room=y.cap-tot;if(room<=.001){toast('A seringa está cheia.','warn');return;}
+    const tr=LEVEL==='treino';let hint=null;
+    if(tr){if(stepId==='asp')hint=b.fr?'Aspire todo o conteúdo do frasco: puxe até o fim.':`Aspire todo o conteúdo da ampola: ${fmt(b.ml)} ml.`;
+      else if(stepId==='aspabd')hint=`Aspire ${fmt(this.rc)} ml de ABD para reconstituir o pó.`;
+      else hint=`Complete até 20 ml na seringa (faltam ${fmt(round1(20-tot))} ml).`;}
+    const lab=isDrug?nm(D[b.key]):(b.kind==='abd'?'ABD':'SF 0,9%');
+    aspirePanelP(this,{cap:y.cap,base:tot,liq:isDrug||y.drug>0?LIQ_DRUG:LIQ_DIL,title:`Aspirar: ${lab}`,maxMl:Math.min(b.ml,room),hint},v=>{
+      if(v<=0)return;b.ml=round1(b.ml-v);
+      if(isDrug){if(y.drugKey&&y.drugKey!==b.key)y.mixed=true;y.drugKey=b.key;y.drug+=v;if(!b.fr&&b.ml<=.05)b.img.setTexture('ampolaV');}
+      else if(b.kind==='abd')y.abd+=v;else y.sf+=v;
+      this.setSel(null);toast(`${fmt(round1(v))} ml aspirados.`,'ok');this.guide.complete(stepId);});}
+  tapSharps(){const y=this.syr;
+    if(this.sel!=='syr'){toast(this.bol?'Toque na seringa e depois no coletor para descartá-la.':'Toque na seringa e depois no coletor para descartar a agulha de aspiração.');return;}
+    const dropAmp=()=>{this.bench=this.bench.filter(b=>{const out=b.open&&(b.kind!=='med'||!b.fr);if(out)b.C.destroy();return !out;});this.layoutBench();};
+    if(this.bol){if(!y.injected){toast('Injete a medicação na bolsa antes de descartar a seringa.','warn');return;}if(!this.guide.can('descarte'))return;
+      this.setSel(null);this.syr=null;dropAmp();this.drawSyrB();toast('Seringa, agulha e ampolas abertas descartadas no coletor.','ok');this.guide.complete('descarte');return;}
+    if(!y.needle){toast('A seringa já está sem agulha.');return;}
+    if(y.drug<=0){toast('Aspire a medicação antes de retirar a agulha.','warn');return;}
+    if(this.im&&y.discarded){toast('Essa é a agulha de aplicação: leve a seringa ao leito.','warn');return;}
+    if(!this.guide.can('descarte'))return;
+    y.needle=null;y.discarded=true;dropAmp();
+    this.setSel(null);toast(this.im?'Agulha de aspiração descartada. Agora encaixe a agulha de aplicação.':'Agulha de aspiração e ampolas abertas descartadas no coletor.','ok');this.guide.complete('descarte');}
+  update(t){const g=this.hl;g.clear();if(LEVEL!=='treino'||!this.guide)return;const cu=this.guide.cur();if(!cu)return;
+    const a=.45+.4*Math.sin(t/170);g.lineStyle(7,0xFFC43D,a);
+    const box=(o,w,h)=>{if(o)g.strokeRoundedRect(o.x-w/2,o.y-h/2,w,h,16);};
+    const bc=b=>b&&box(b.C,b.kind==='bag'?120:108,b.kind==='bag'?150:180),syrBox=()=>g.strokeRoundedRect(70,830,460,100,18);
+    const viaSyr=b=>{if(this.sel==='syr')bc(b);else syrBox();};
+    const med=this.bench.find(b=>b.kind==='med'&&b.key===this.c.key);
+    const abd=this.bench.find(b=>b.kind==='abd'&&b.ml>0)||this.bench.find(b=>b.kind==='abd');
+    const openFirst=b=>{if(b&&!b.open){if(this.sel==='syr')syrBox();else bc(b);}else viaSyr(b);};
+    const sp=this.c.spec;
+    ({maos:()=>box(this.piaBtn,330,94),med:()=>box(this.shelfMed[this.c.key],150,210),dil:()=>box(this.shelfABD,110,190),ser:()=>box(this.shelfSyr[this.ideal],this.bol?150:190,80),
+      agu:()=>box(this.shelfNd['40x12'],this.im?116:160,76),abrir:()=>bc(med),aspabd:()=>abd?openFirst(abd):box(this.shelfABD,110,190),recon:()=>viaSyr(med),agitar:()=>bc(med),
+      asp:()=>viaSyr(med),completar:()=>abd?openFirst(abd):box(this.shelfABD,110,190),descarte:()=>this.sel==='syr'?box(this.sharps,140,190):syrBox(),
+      bolsa:()=>box(this.shelfBag['SF 0,9%'+bagVol(sp)],90,170),injbolsa:()=>viaSyr(this.bag),homog:()=>bc(this.bag),agulhaIM:()=>box(this.shelfNd[recIM(this.c)],116,76),
+      rotulo:()=>box(this.etiq,this.im?110:140,100),levar:()=>box(this.goBtn,340,94)}[cu.id]||(()=>0))();}
+  levar(){if(!this.guide.can('levar'))return;const y=this.syr,c=this.c,R=this.R,d0=c.d,sp=c.spec;
+    const H=this.bol?this.bag:y;
+    if(!H||H.drug<=0){toast(this.bol?'Prepare a bolsa com a medicação antes de ir ao leito.':'Prepare a seringa com a medicação antes de ir ao leito.','warn');return;}
+    if(this.im&&y.discarded&&!y.needle){toast('Encaixe a agulha de aplicação antes de ir ao leito.','warn');return;}
+    if(this.sel)this.setSel(null);
+    if(!this.maos)note(R,'warn','Higienize as mãos antes de preparar a medicação.',-4);
+    const okMed=H.drugKey===c.key&&!y?.mixed;
+    if(!okMed)note(R,false,`Medicação errada: ${H.drugKey==='mix'?'misturou dois medicamentos':'preparou '+nm(D[H.drugKey])}, mas a prescrição é de ${nm(d0)}. Confira o rótulo 3 vezes: ao pegar, ao aspirar e ao guardar.`,-40);
+    else note(R,true,`Medicação certa: ${nm(d0)} ${d0.dose}.`);
+    if(okMed){
+      if(this.fr){if(H.drug<this.reconContent-.5)note(R,false,`Ficou medicação no frasco: aspirou ${fmt(round1(H.drug))} de ${fmt(round1(this.reconContent))} ml. A dose fica incompleta.`,-15);
+        if(this.reconV<this.rc*.8)note(R,'warn',`Pouco diluente para reconstituir (${fmt(round1(this.reconV))} ml; a tabela indica ${fmt(this.rc)} ml).`,-3);
+        if(this.reconSF)note(R,'warn','Reconstituiu com SF 0,9%; a tabela indica ABD.',-3);}
+      else if(Math.abs(H.drug-d0.volIM)>d0.volIM*.1+.05)note(R,false,`Dose errada: aspirou ${fmt(round1(H.drug))} ml; a ampola de ${d0.dose} tem ${fmt(d0.volIM)} ml.`,-15);}
+    if(this.dil){const tot=this.syrTotal();if(y.sf>0)note(R,'warn','Completou com SF 0,9%; a tabela indica ABD.',-6);
+      const dv=Math.abs(tot-20);if(dv>1)note(R,dv>5?false:'warn',`Volume final de ${fmt(round1(tot))} ml; a tabela indica diluir em 20 ml de ABD.`,dv>5?-10:-4);
+      else if(!y.sf)note(R,true,`Diluição correta: ${fmt(round1(tot))} ml com ABD.`);}
+    else if(!this.bol){if(y.abd+y.sf>.05)note(R,false,`${nm(d0)} ${c.via} não se dilui: a tabela indica somente a ampola.${d0.evNota&&!this.im?' '+d0.evNota:''}`,-10);
+      else if(!this.fr)note(R,true,'Sem diluição, como indica a tabela.');}
+    if(!this.dil&&this.syrCapUsed>=10&&this.need<=3)note(R,'warn',`Seringa de ${this.syrCapUsed} ml para ${fmt(this.need)} ml: perde precisão na dose. Prefira ${this.ideal} ml.`,-2);
+    if(this.aspNeedle&&this.aspNeedle!=='40x12')note(R,'warn',`Para aspirar, a agulha indicada é 40 × 12 (usou ${this.aspNeedle.replace('x',' × ')}).`,-2);
+    if(this.bol){const B=this.bag;
+      if(B.sol!=='SF 0,9%'||B.vol!==bagVol(sp))note(R,false,`Bolsa errada: usou ${B.sol} ${B.vol} ml; a tabela indica ${descr(sp).replace(/^Diluir/,'diluir')}.`,-15);
+      else note(R,true,`Bolsa certa: SF 0,9% ${B.vol} ml.`);
+      if(!B.homog)note(R,'warn','Homogeneíze a bolsa depois de injetar a medicação.',-3);
+      if(this.syr)note(R,'warn','Descarte a seringa e a agulha no coletor antes de ir ao leito.',-4);
+      if(!B.labeled)note(R,'warn','Bolsa sem identificação (paciente, leito, medicamento, dose, via, horário e tempo de infusão).',-5);
+      c.soro={sol:B.sol,vol:B.vol,min:sp.tempo,eq:'macro'};c.inf={vol:(sp.volInf||sp.vol),min:sp.tempo,eq:'macro'};
+      this.guide.complete('levar');this.scene.start('BedS',{c,R});return;}
+    if(this.im&&!y.discarded)note(R,false,'Não trocou a agulha: a 40 × 12 de aspiração é calibrosa demais para aplicar e perde o corte ao passar pela ampola.',-6);
+    else if(!this.im&&y.needle)note(R,'warn','A agulha de aspiração deve ser descartada no coletor antes de ir ao leito.',-4);
+    if(!y.labeled)note(R,'warn','Seringa sem identificação (paciente, leito, medicamento, dose, via e horário).',-5);
+    c.syr={cap:y.cap,vol:this.syrTotal(),needle:y.needle,ok:okMed};
+    this.guide.complete('levar');this.scene.start(this.im?'BedIM':'BedEV',{c,R});}
+}
+
+const STEPS_EV=[
+ ['conf','luvas','Higienize as mãos e calce luvas','Toque em Luvas na gaveta.','braco'],
+ ...STEPS_SORO.filter(x=>x[0]==='puncao'),
+ ['adm','administrar','Administre devagar','Toque em Medicação na gaveta e depois na ponta vermelha do extensor.','braco'],
+ ['adm','lavar','Lave o acesso com SF 0,9%','Toque na seringa de SF e depois na ponta do extensor.','braco'],
+ ['reg','finalizar','Finalize e registre','Toque em Finalizar.','braco']];
+class BedEV extends BedS{constructor(){super('BedEV');}}
+
+/* ================= MODO: INTRAMUSCULAR ================= */
+const SITES={deltoide:{n:'deltoide',x:514,y:288,lx:560,ly:300},ventro:{n:'ventroglúteo',x:486,y:412,lx:560,ly:395},dorso:{n:'dorsoglúteo',x:440,y:468,lx:560,ly:478},vasto:{n:'vasto lateral da coxa',x:464,y:650,lx:540,ly:650}};
+const STEPS_IM=[
+ ['conf','luvas','Higienize as mãos e calce luvas','Toque em Luvas na gaveta.'],
+ ['im','local','Escolha o local da injeção','Toque num dos pontos azuis do corpo. Pense no volume e no medicamento.'],
+ ['im','antissepsia','Faça a antissepsia','Toque no Álcool e depois no local escolhido.'],
+ ['im','aplicar','Introduza a agulha e injete','Toque em Medicação e depois no local. Ajuste o ângulo e injete devagar.'],
+ ['im','compressao','Comprima com algodão seco','Toque em Algodão e depois no local. Não massageie.'],
+ ['im','descarte','Descarte a seringa no coletor','Toque na seringa usada e depois no coletor.'],
+ ['reg','finalizar','Finalize e registre','Toque em Finalizar.']];
+FASES.im='Aplicação IM';
+function drawBody(g,p){const t=PELE[p.pele],sk=HEX(t.base),md=HEX(t.mid),ln=HEX(t.line),hair=HEX(CABELO[p.cab]),w=p.peso>=85?1.12:p.peso<=58?.92:1;
+  const X=x=>360+(x-360)*w,poly=(pts,f)=>{g.fillStyle(f,1);g.lineStyle(3,ln,1);g.beginPath();g.moveTo(X(pts[0][0]),pts[0][1]);pts.slice(1).forEach(q=>g.lineTo(X(q[0]),q[1]));g.closePath();g.fillPath();g.strokePath();};
+  const mir=a=>a.map(([x,y])=>[720-x,y]);
+  const armL=[[250,212],[208,238],[192,520],[230,526],[252,300]],legL=[[245,500],[356,520],[346,880],[276,880],[244,570]];
+  poly(armL,sk);poly(mir(armL),sk);
+  g.fillStyle(sk,1);g.lineStyle(3,ln,1);[[211,546],[509,546]].forEach(([x,y])=>{g.fillCircle(X(x),y,22);g.strokeCircle(X(x),y,22);});
+  poly(legL,sk);poly(mir(legL),sk);
+  g.fillStyle(sk,1);g.fillRoundedRect(X(238),408,(X(482)-X(238)),90,30);
+  [[305,480],[415,480]].forEach(([x,y])=>{g.fillStyle(sk,1);g.fillEllipse(X(x),y,148*w,140);g.lineStyle(3,ln,1);g.strokeEllipse(X(x),y,148*w,140);});
+  g.lineStyle(3,ln,.8);g.lineBetween(360,440,360,540);
+  poly([[250,204],[470,204],[502,240],[476,424],[244,424],[218,240]],md);
+  poly([[250,204],[470,204],[502,240],[476,416],[244,416],[218,240]],0x6FA8DC);
+  g.fillStyle(0xffffff,.45);[[300,260],[400,300],[330,360],[430,380],[280,330],[450,240]].forEach(([x,y])=>g.fillCircle(X(x),y,6));
+  g.fillStyle(md,1);g.fillRect(338,176,44,34);
+  g.fillStyle(sk,1);g.fillCircle(360,138,52);g.lineStyle(3,ln,1);g.strokeCircle(360,138,52);
+  g.fillStyle(hair,1);g.fillEllipse(360,128,p.cab>=5?96:108,p.cabLongo?130:96);if(p.cabLongo)g.fillRoundedRect(316,140,88,70,20);}
+function imAnglePanelP(s,{needle,p},cb){
+  $('#gToast').innerHTML='';
+  const C=s.add.container(0,0).setDepth(300).setScrollFactor(0);
+  C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.65).setInteractive());
+  const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(16,50,688,1020,28);C.add(pg);
+  C.add(T(s,360,104,'Introduza a agulha',38,'#0F3238',{display:true}));
+  C.add(T(s,360,152,'Gire a seringa até o ângulo certo e toque em Inserir.',21,'#557178',{w:'700',wrap:620}));
+  const n=NEEDLES[needle]||NEEDLES['30x7'],F=p.peso>=85?78:p.peso<=58?40:56,K=1.2,ox=48,oy=330,Wd=520*K;
+  const lg=s.add.graphics();C.add(lg);const Y=v=>oy+v*K;
+  lg.fillStyle(0xE6F6F3,1);lg.fillRect(ox,Y(0),Wd,70*K);
+  lg.fillStyle(HEX(PELE[p.pele].base),1);lg.fillRect(ox,Y(70),Wd,12*K);
+  lg.fillStyle(HEX(PELE[p.pele].mid),1);lg.fillRect(ox,Y(82),Wd,16*K);
+  lg.fillStyle(0xFFF2C9,1);lg.fillRect(ox,Y(98),Wd,F*K);lg.fillStyle(0xffffff,.45);for(let i=0;i<14;i++)lg.fillCircle(ox+20+i*44,Y(98)+(F*K)*(.3+.4*(i%2)),8);
+  lg.fillStyle(0xE7807C,1);lg.fillRect(ox,Y(98+F),Wd,(270-98-F)*K);
+  lg.lineStyle(3,0xffffff,.2);[1,2,3].forEach(i=>lg.lineBetween(ox,Y(98+F)+i*30,ox+Wd,Y(98+F)+i*30+6));
+  C.add(T(s,ox+Wd-10,Y(76),'pele',16,'#3B5A60',{ox:1}));C.add(T(s,ox+Wd-10,Y(98+F/2),'tecido subcutâneo',16,'#8A6A30',{ox:1}));C.add(T(s,ox+Wd-10,Y(98+F+30),'músculo',16,'#fff',{ox:1}));
+  const E={x:ox+260*K,y:Y(70)};const sy=s.add.container(E.x,E.y);C.add(sy);const g=s.add.graphics();sy.add(g);
+  const nl=n.len*3.6*K;let ang=45,ins=0,done=false;
+  const draw=()=>{g.clear();const x0=-nl+ins*nl;g.fillStyle(0x9AA8B2,1);g.fillRect(x0,-2,nl,4);g.fillStyle(HEX(n.cor),1);g.fillRoundedRect(x0-22,-7,22,14,3);
+    g.fillStyle(0xF2F9FD,1);g.fillRoundedRect(x0-122,-16,100,32,4);g.lineStyle(2,0x8FB0C2,1);g.strokeRoundedRect(x0-122,-16,100,32,4);g.fillStyle(LIQ_DRUG,.75);g.fillRect(x0-90,-13,66,26);
+    sy.rotation=ang*Math.PI/180;};draw();
+  const angT=T(s,360,700,`Ângulo: ${ang}°`,32,'#0F3238',{display:true});C.add(angT);
+  C.add(T(s,360,740,`Agulha ${needle.replace('x',' × ')} · paciente de ${p.peso} kg`,20,'#557178',{w:'700'}));
+  const sx0=110,sw=500,yy=815;const tr=s.add.graphics();tr.fillStyle(0xD3E3E5,1);tr.fillRoundedRect(sx0,yy-9,sw,18,9);C.add(tr);
+  C.add(T(s,sx0,yy+38,'10°',18,'#557178'));C.add(T(s,sx0+sw,yy+38,'90°',18,'#557178'));
+  const knob=s.add.circle(sx0+(ang-10)/80*sw,yy,30,0x2D7FD3).setStrokeStyle(6,0xffffff).setInteractive({hitArea:new Phaser.Geom.Circle(30,30,70),hitAreaCallback:Phaser.Geom.Circle.Contains,draggable:true,useHandCursor:true});C.add(knob);
+  knob.on('drag',(pp,x)=>{if(done)return;x=Phaser.Math.Clamp(x,sx0,sx0+sw);knob.x=x;ang=Math.round(10+(x-sx0)/sw*80);angT.setText(`Ângulo: ${ang}°`);draw();});
+  C.add(button(s,360,910,'Inserir',()=>{if(done)return;done=true;s.tweens.addCounter({from:0,to:1,duration:700,onUpdate:tw=>{ins=tw.getValue();draw();},onComplete:()=>{
+    const depth=Math.sin(ang*Math.PI/180)*n.len*3.6;const layer=depth>28+F?'músculo':depth>12?'subcutâneo':'derme';
+    C.add(T(s,360,1000,`A ponta da agulha está no ${layer}`,28,layer==='músculo'?'#1E9A55':'#D9403A',{display:true}));
+    s.time.delayedCall(1300,()=>{C.destroy();cb({ang,layer});});}});},{w:300,h:84,size:30}));
+  return C;
+}
+class BedIM extends Phaser.Scene{
+  constructor(){super('BedIM');}
+  create(d){const s=this,c=this.c=d.c;this.R=d.R;const p=c.p;
+    this.st={gloved:false,site:null,rub:false,given:false,comp:false,disc:false};this.sel=null;
+    const bg=s.add.graphics();bg.fillStyle(0xDDEBEF,1);bg.fillRect(0,0,GW,DRAWER_Y);bg.fillStyle(0xF4F8FB,1);bg.fillRoundedRect(150,40,420,850,40);
+    const body=s.add.graphics();drawBody(body,p);
+    T(s,24,30,`Peso: ${p.peso} kg · ${p.idade} anos`,22,'#3B5A60',{ox:0,oy:0,w:'700'});
+    T(s,24,62,'Vista de costas',18,'#557178',{ox:0,oy:0,w:'700'});
+    this.face=drawFace(s,640,90,p,48).setDepth(20);
+    this.mark=s.add.graphics().setDepth(8);
+    if(LEVEL==='treino'){const q=s.add.graphics().setDepth(7);q.lineStyle(3,0x0F3238,.5);
+      for(let y=420;y<545;y+=14)q.lineBetween(415,y,415,y+7);for(let x=345;x<487;x+=14)q.lineBetween(x,480,x+7,480);}
+    this.spots={};
+    Object.entries(SITES).forEach(([k,v])=>{const g=s.add.graphics().setDepth(9);g.fillStyle(0x2D7FD3,.35);g.fillCircle(v.x,v.y,20);g.lineStyle(4,0x2D7FD3,1);g.strokeCircle(v.x,v.y,20);
+      const z=s.add.zone(v.x,v.y,64,64).setInteractive({useHandCursor:true}).setDepth(12);z.on('pointerup',()=>this.tapSite(k));this.spots[k]=g;
+      if(LEVEL==='treino'){T(s,v.lx,v.ly,v.n.replace(' da coxa',''),18,'#0F3238',{ox:0}).setBackgroundColor('#ffffffcc').setPadding(6,2,6,2).setDepth(10);}});
+    this.sharps=s.add.container(640,800,[s.add.image(0,0,'sharps').setScale(.62),T(s,0,-70,'coletor',20,'#3B5A60')]).setSize(110,140).setInteractive({useHandCursor:true}).setDepth(6);
+    this.sharps.on('pointerup',()=>this.tapSharps());
+    const cs=c.syr;
+    this.drawer=makeDrawer(s,[{key:'luvas',label:'Luvas',tex:'gloves'},{key:'alcool',label:'Álcool',tex:'alcool'},
+      {key:'med',label:'Medicação',draw:g=>drawSyr(g,cs.cap,cs.vol,cs.needle,LIQ_DRUG,40/SYR[cs.cap][0])},{key:'algodao',label:'Algodão',tex:'algodao'}],k=>this.pick(k));
+    this.finBtn=button(s,74+4*143,DRAWER_Y+56,'Finalizar',()=>this.finish(),{w:132,h:92,size:24}).setDepth(85);
+    this.guide=new Guide(this,STEPS_IM);
+    this.hl=s.add.graphics().setDepth(70);this.hlUI=s.add.graphics().setDepth(84);
+  }
+  setSel(k,label){if(this.sel&&this.drawer[this.sel])this.drawer[this.sel].draw(false);this.sel=k;if(k&&this.drawer[k])this.drawer[k].draw(true);
+    this.selLabel.setText(k?`Na mão: ${label} · toque de novo para soltar`:'').setVisible(!!k);}
+  pick(k){const st=this.st;if(this.sel===k){this.setSel(null);return;}
+    if(k==='luvas'){if(!this.guide.can('luvas'))return;st.gloved=true;this.drawer.luvas.disable();toast('Mãos higienizadas e luvas calçadas.','ok');this.guide.complete('luvas');return;}
+    this.setSel(k,{alcool:'algodão com álcool 70%',med:'seringa com a medicação',algodao:'algodão seco'}[k]);}
+  markSite(){const m=this.mark;m.clear();const k=this.st.site;if(!k)return;const v=SITES[k];m.lineStyle(6,0xFFC43D,1);m.strokeCircle(v.x,v.y,30);
+    if(this.st.rub){m.fillStyle(0xffffff,.35);m.fillCircle(v.x,v.y,40);}}
+  tapSite(k){const st=this.st,R=this.R,c=this.c,sel=this.sel;
+    if(!sel){if(st.given){toast('A medicação já foi aplicada.');return;}if(!this.guide.can('local'))return;
+      if(st.rub&&st.site!==k){st.rub=false;}
+      st.site=k;this.markSite();toast(`Local escolhido: ${SITES[k].n}.`,'ok');this.guide.complete('local');return;}
+    if(sel==='alcool'){if(!st.site){st.site=k;this.guide.complete('local');}
+      if(st.site!==k){toast('Faça a antissepsia no local escolhido (ou toque em outro ponto sem nada na mão para mudar).','warn');return;}
+      if(!this.guide.can('antissepsia'))return;if(!st.gloved)note(R,'warn','Calce as luvas antes de tocar no paciente.',-6,'luvas');
+      st.rub=true;this.markSite();this.setSel(null);toast('Antissepsia feita em movimento circular, de dentro para fora. Espere secar.','ok');this.guide.complete('antissepsia');return;}
+    if(sel==='med'){if(st.site&&k!==st.site){toast('Aplique no local onde fez a antissepsia.','warn');return;}
+      if(!st.site){st.site=k;this.markSite();this.guide.complete('local');}
+      if(!this.guide.can('aplicar'))return;
+      if(!st.gloved)note(R,false,'Aplicação sem luvas.',-8,'luvas');
+      if(!st.rub)note(R,false,'Aplicação sem antissepsia do local.',-8,'antis');
+      this.setSel(null);
+      const [pts,res]=evalSite(k,c);note(R,res.ok,res.t,pts-15);
+      imAnglePanelP(this,{needle:c.syr.needle,p:c.p},r=>{
+        if(r.ang<75)note(R,'warn',`Ângulo de ${r.ang}°: a via intramuscular é a 90°.`,-3);
+        if(r.layer!=='músculo')note(R,false,`A ponta da agulha ficou no ${r.layer}: a medicação não chega ao músculo. ${r.ang<75?'Use 90°.':c.syr.needle==='13x4,5'||c.syr.needle==='25x7'?`Para ${c.p.peso} kg, use agulha mais longa (${recIM(c).replace('x',' × ')}).`:''}`,-12);
+        else note(R,true,`Agulha ${c.syr.needle.replace('x',' × ')} no músculo, a ${r.ang}°.`);
+        if(c.syr.needle==='40x12')note(R,false,'Aplicou com a agulha 40 × 12 de aspiração: calibrosa demais, causa dor e lesão.',-6);
+        injectPanelP(this,{cap:c.syr.cap,vol:c.syr.vol,p:c.p,name:nm(c.d),tmin:Math.max(.25,c.syr.vol/6),liq:LIQ_DRUG,title:'Injete devagar no músculo',target:'musculo'},res2=>{
+          speedNotes(R,res2,c.key,true);st.given=true;this.drawer.med.disable();
+          const v=SITES[k],ug=this.add.graphics();drawSyr(ug,c.syr.cap,0,c.syr.needle,LIQ_DIL,60/SYR[c.syr.cap][0]);
+          this.used=this.add.container(v.x-70,v.y-60,[ug]).setSize(150,50).setInteractive({useHandCursor:true}).setDepth(30).setRotation(-.5);
+          this.used.on('pointerup',()=>{if(st.disc)return;this.setSel('usado','seringa usada (perfurocortante)');toast('Agora toque no coletor amarelo. Não reencape a agulha.');});
+          toast('Agulha retirada. Comprima o local com algodão seco.','ok');this.guide.complete('aplicar');});});return;}
+    if(sel==='algodao'){if(!st.given){toast('Use o algodão seco depois de aplicar.','warn');return;}if(k!==st.site)return;if(!this.guide.can('compressao'))return;
+      st.comp=true;this.setSel(null);toast(c.key==='benzetacil'?'Compressão feita, sem massagear: a penicilina benzatina deve ficar no músculo.':'Compressão leve com algodão seco, sem massagear.','ok');this.guide.complete('compressao');}}
+  tapSharps(){const st=this.st;if(this.sel!=='usado'){toast(st.given?'Toque na seringa usada e depois aqui.':'O coletor é para a seringa depois da aplicação.');return;}
+    if(!this.guide.can('descarte'))return;st.disc=true;this.used.destroy();this.setSel(null);toast('Seringa e agulha descartadas no coletor, sem reencapar.','ok');this.guide.complete('descarte');}
+  update(time){const h=this.hl,hu=this.hlUI;if(!h)return;h.clear();hu.clear();if(LEVEL!=='treino'||!this.guide)return;const cu=this.guide.cur();if(!cu)return;const st=this.st;
+    const a=.45+.4*Math.sin(time/170);h.lineStyle(7,0xFFC43D,a);hu.lineStyle(6,0xFFC43D,a);
+    const ring=(x,y,r)=>h.strokeCircle(x,y,r+6*Math.sin(time/170));const ui=k=>{const d=this.drawer[k];if(d&&!d.C._dis&&this.sel!==k)hu.strokeRoundedRect(d.x-70,d.y-54,140,108,18);};
+    const site=()=>st.site&&ring(SITES[st.site].x,SITES[st.site].y,40);
+    ({luvas:()=>ui('luvas'),local:()=>Object.values(SITES).forEach(v=>ring(v.x,v.y,34)),antissepsia:()=>this.sel==='alcool'?site():ui('alcool'),aplicar:()=>this.sel==='med'?site():ui('med'),
+      compressao:()=>this.sel==='algodao'?site():ui('algodao'),descarte:()=>this.sel==='usado'?ring(640,800,80):this.used&&ring(this.used.x,this.used.y,60),
+      finalizar:()=>hu.strokeRoundedRect(74+4*143-70,DRAWER_Y+6,140,104,18)}[cu.id]||(()=>0))();}
+  finish(){if(!this.guide.can('finalizar'))return;const st=this.st,R=this.R;
+    if(!st.given)note(R,false,'A medicação não foi aplicada.',-40);
+    else{if(!st.comp)note(R,'warn','Comprima o local com algodão seco após retirar a agulha.',-2);if(!st.disc)note(R,false,'A seringa com agulha ficou fora do coletor: risco de acidente perfurocortante.',-5);}
+    this.guide.complete('finalizar');endCase();}
+}
+
 
 /* ---------- MINIGAME: punção (retrato) ---------- */
 function puncturePanelP(s,gauge,cb){
@@ -1149,20 +1664,22 @@ function puncturePanelP(s,gauge,cb){
   const drawC=()=>{ng.clear();const k=K;ng.fillStyle(0x9AA8B2,1);ng.fillRect(-118*k,-2*k,118*k,4*k);ng.fillStyle(0xffffff,1);ng.fillTriangle(0,0,-14*k,up?-4*k:4*k,-14*k,0);
     ng.fillStyle(col,.5);ng.fillRect(-104*k,-4*k,96*k,8*k);ng.fillStyle(col,1);ng.fillRoundedRect(-160*k,-10*k,46*k,20*k,5);
     ng.fillStyle(0xF4FAFD,1);ng.fillRoundedRect(-194*k,-8*k,34*k,16*k,4);ng.lineStyle(2,0x9FBFD0,1);ng.strokeRoundedRect(-194*k,-8*k,34*k,16*k,4);
-    if(flash){ng.fillStyle(0xC8202A,1);ng.fillRoundedRect(-190*k,-4*k,26*k,8*k,2);}cath.rotation=ang*Math.PI/180;inner.x=adv*K;};drawC();
+    if(flash){ng.fillStyle(0xC8202A,1);ng.fillRoundedRect(-192*k,-6*k,30*k,12*k,3);}cath.rotation=ang*Math.PI/180;inner.x=adv*K;};drawC();
   const angT=T(s,360,600,`Ângulo: ${ang}°`,34,'#0F3238',{display:true});C.add(angT);
   const sx0=100,sw=520,sy=670;const tr=s.add.graphics();tr.fillStyle(0xD3E3E5,1);tr.fillRoundedRect(sx0,sy-9,sw,18,9);tr.fillStyle(0x1E9A55,.35);tr.fillRect(sx0+(15-5)/55*sw,sy-9,15/55*sw,18);C.add(tr);
   C.add(T(s,sx0,sy+34,'5°',18,'#557178'));C.add(T(s,sx0+sw,sy+34,'60°',18,'#557178'));
-  const knob=s.add.circle(sx0+(ang-5)/55*sw,sy,30,0x2D7FD3).setStrokeStyle(6,0xffffff).setInteractive({draggable:true,useHandCursor:true});C.add(knob);
+  const knob=s.add.circle(sx0+(ang-5)/55*sw,sy,30,0x2D7FD3).setStrokeStyle(6,0xffffff).setInteractive({hitArea:new Phaser.Geom.Circle(30,30,70),hitAreaCallback:Phaser.Geom.Circle.Contains,draggable:true,useHandCursor:true});C.add(knob);
   knob.on('drag',(p,x)=>{if(state!=='aim')return;x=Phaser.Math.Clamp(x,sx0,sx0+sw);knob.x=x;ang=Math.round(5+(x-sx0)/sw*55);angT.setText(`Ângulo: ${ang}°`);drawC();});
   const bev=button(s,360,770,'Bisel: para cima',()=>{if(state!=='aim')return;up=!up;bev.setLabel(up?'Bisel: para cima':'Bisel: para baixo');drawC();},{w:340,h:64,color:0x557178,dark:0x3A4E53,size:24});C.add(bev);
   const go=button(s,360,900,'Segure para avançar',null,{w:520,h:120,color:0x2D7FD3,dark:0x1F5EA3,size:32});C.add(go);
   const tip=()=>{const a=ang*Math.PI/180;return{u:170+adv*Math.cos(a),v:70+adv*Math.sin(a)};},inV=t=>Math.hypot(t.u-308,t.v-127)<24;
   go.on('pointerdown',()=>{if(state==='aim')state='adv';if(state==='adv')hold=true;});
   const rel=()=>{if(!hold)return;hold=false;if(state!=='adv')return;if(inV(tip()))end(true);};go.on('pointerup',rel);go.on('pointerout',rel);s.input.on('pointerup',rel);
-  const ev=s.time.addEvent({delay:16,loop:true,callback:()=>{if(state!=='adv'||!hold)return;adv+=.9;const t=tip(),iv=inV(t);if(iv){flash=true;wasIn=true;}if(wasIn&&!iv){end(false,'transfix');return;}if(adv>235){end(false,'miss');return;}drawC();}});
+  let lastT=performance.now(),said=false;const bl=T(s,360,1010,'',30,'#C8202A',{display:true});C.add(bl);s._punc=()=>({flash,state,adv});
+  const ev=s.time.addEvent({delay:16,loop:true,callback:()=>{const now=performance.now(),k=Math.min(4,(now-lastT)/16.7);lastT=now;if(state!=='adv'||!hold)return;adv+=(flash?.45:.9)*k;const t=tip(),iv=inV(t);
+    if(iv){flash=true;wasIn=true;if(!said){said=true;bl.setText(LEVEL==='prova'?'':'Sangue na câmara! Solte o botão.');}}if(wasIn&&!iv){bl.setText('');end(false,'transfix');return;}if(adv>235){end(false,'miss');return;}drawC();}});
   function end(ok,why){state='done';ev.remove();s.input.off('pointerup',rel);drawC();
-    C.add(T(s,360,1010,ok?'Refluxo de sangue na câmara!':why==='transfix'?'Atravessou a veia: hematoma.':'Não atingiu a veia.',30,ok?'#1E9A55':'#D9403A',{display:true}));
+    bl.setText('');C.add(T(s,360,1010,ok?'Refluxo de sangue na câmara!':why==='transfix'?'Atravessou a veia: hematoma.':'Não atingiu a veia.',30,ok?'#1E9A55':'#D9403A',{display:true}));
     s.time.delayedCall(1200,()=>{C.destroy();cb({ok,why,ang,up});});}
 }
 
@@ -1173,7 +1690,7 @@ let GAME=null,READY=null,BOOT=null;
 class Boot extends Phaser.Scene{constructor(){super('Boot');}create(){baseTextures(this).then(()=>BOOT&&BOOT());}}
 function ensureGame(){if(READY)return READY;
   READY=(async()=>{try{await Promise.race([Promise.all([document.fonts.load('800 20px "Baloo 2"'),document.fonts.load('800 16px Nunito'),document.fonts.load('700 16px Nunito')]),new Promise(r=>setTimeout(r,2500))]);}catch(e){}
-    await new Promise(res=>{BOOT=res;GAME=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:GW,height:GH,backgroundColor:'#CDEAE5',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},input:{activePointers:2},scene:[Boot,Check,PrepS,BedS]});});
+    await new Promise(res=>{BOOT=res;GAME=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:GW,height:GH,backgroundColor:'#CDEAE5',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},input:{activePointers:2},scene:[Boot,Check,PrepS,BedS,PrepEV,BedEV,BedIM]});});
     try{new ResizeObserver(()=>{if(GAME)GAME.scale.refresh();}).observe(document.querySelector('.gstage'));}catch(e){}})();
   return READY;}
 function endCase(){closeM();$('#sheet').hidden=true;if(CUR&&CUR.done){const d=CUR.done;CUR.done=null;d(CUR.R);}}
@@ -1188,21 +1705,22 @@ $('#protoBtn').onclick=openProto;
 function setupIssue(c){
   c.issue=null;c.alergiaW=null;c.photo={...c.p};c.nascAlt=null;
   const r=Math.random();
-  if(r<.09)c.issue='nome';else if(r<.17){c.issue='nasc';const [d,m,y]=c.p.nasc.split('/');c.nascAlt=`${d}/${m}/${+y+(Math.random()<.5?1:-2)}`;}
-  else if(r<.26){c.issue='foto';const ph={...c.p};if(Math.random()<.5)ph.pele=(c.p.pele+2)%4;else{ph.cab=(c.p.cab+3)%7;ph.oculos=!c.p.oculos;ph.barba=!c.p.fem&&!c.p.barba;ph.cabLongo=c.p.fem?!c.p.cabLongo:false;}c.photo=ph;}
-  else if(r<.32&&c.d){c.issue='alergia';c.alergiaW=c.d.alergia||c.d.nome;}
+  /* divergências são raras (~12–15% dos casos), como no plantão */
+  if(r<.04)c.issue='nome';else if(r<.08){c.issue='nasc';const [d,m,y]=c.p.nasc.split('/');c.nascAlt=`${d}/${m}/${+y+(Math.random()<.5?1:-2)}`;}
+  else if(r<.12){c.issue='foto';const ph={...c.p};if(Math.random()<.5)ph.pele=(c.p.pele+2)%4;else{ph.cab=(c.p.cab+3)%7;ph.oculos=!c.p.oculos;ph.barba=!c.p.fem&&!c.p.barba;ph.cabLongo=c.p.fem?!c.p.cabLongo:false;}c.photo=ph;}
+  else if(r<.15&&c.d){c.issue='alergia';c.alergiaW=c.d.alergia||c.d.nome;}
   return c;}
 async function playCase(c){
   document.body.classList.add('playing');$('#view').hidden=true;$('#gamewrap').hidden=false;
   const R={c,notes:[],ded:0};CUR={c,R,done:null};setScore();rxStrip(c);
   await ensureGame();await new Promise(r=>requestAnimationFrame(r));GAME.scale.refresh();
-  return new Promise(res=>{CUR.done=res;['Check','PrepS','BedS'].forEach(k=>{if(GAME.scene.isActive(k))GAME.scene.stop(k);});GAME.scene.start('Check',{c,R});});}
+  return new Promise(res=>{CUR.done=res;['Check','PrepS','BedS','PrepEV','BedEV','BedIM'].forEach(k=>{if(GAME.scene.isActive(k))GAME.scene.stop(k);});GAME.scene.start('Check',{c,R});});}
 const starsN=p=>p>=90?3:p>=70?2:p>40?1:0;
 const starsH=n=>`<span class="stars">${[0,1,2].map(i=>`<span class="${i<n?'on':'off'}">★</span>`).join('')}</span>`;
 const TIPO_TXT={ev_ser:'EV em seringa',ev_bol:'EV em bolsa',soro:'Soroterapia',im:'Intramuscular'};
-function showView(html){document.body.classList.remove('playing');if(GAME)['Check','PrepS','BedS'].forEach(k=>{if(GAME.scene.isActive(k))GAME.scene.stop(k);});$('#gamewrap').hidden=true;$('#view').hidden=false;$('#view').innerHTML=html;window.scrollTo({top:0});}
+function showView(html){document.body.classList.remove('playing');if(GAME)['Check','PrepS','BedS','PrepEV','BedEV','BedIM'].forEach(k=>{if(GAME.scene.isActive(k))GAME.scene.stop(k);});$('#gamewrap').hidden=true;$('#view').hidden=false;$('#view').innerHTML=html;window.scrollTo({top:0});}
 async function startMode(mode){const token=++S.run;S.mode=mode;S.results=[];
-  S.cases=['soro','soro','soro'].map(t=>setupIssue(makeCase(t)));
+  S.cases=[mode,mode,mode].map(t=>setupIssue(makeCase(t)));
   for(let i=0;i<S.cases.length;i++){S.i=i;$('#casePill').hidden=false;$('#casePill').textContent=`${i+1}/${S.cases.length}`;
     const R=await playCase(S.cases[i]);if(token!==S.run)return;S.results.push(R);await caseSummary(R,i===S.cases.length-1);if(token!==S.run)return;}
   finalSummary();}
@@ -1224,21 +1742,25 @@ const ICON={soro:`<svg viewBox="0 0 52 52"><rect x="12" y="4" width="28" height=
   im:`<svg viewBox="0 0 52 52"><g transform="rotate(-45 26 26)"><rect x="12" y="20" width="26" height="12" rx="3" fill="#EAF5FB" stroke="#8FB0C2" stroke-width="2"/><rect x="14" y="22" width="14" height="8" fill="#F0A848"/><rect x="38" y="23" width="8" height="6" fill="#B7C4CC"/><line x1="2" y1="26" x2="12" y2="26" stroke="#8E9CA6" stroke-width="2.5"/></g></svg>`};
 function home(){S.run++;CUR=null;$('#casePill').hidden=true;$('#pts').textContent='0';
   showView(`<section class="hero"><p class="eyebrow">Simulador · técnico de enfermagem</p><h1>Prepare, puncione, <span>administre.</span></h1>
-    <p>Confira o paciente, monte o material, puncione a veia e instale o soro. Feito para jogar no celular.</p></section>
+    <p>Confira o paciente, prepare a medicação, puncione a veia e administre. Feito para jogar no celular.</p></section>
     <p class="sec-l">Escolha o nível</p>
     <div class="levels">${[['treino','Treino','Passo a passo com destaques'],['pratica','Prática','Só a fase atual'],['prova','Prova','Sem roteiro']].map(([k,t,d])=>`<button class="lvl ${LEVEL===k?'on':''}" data-l="${k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
     <p class="sec-l">Escolha o procedimento</p>
     <div class="modes">
-     <button class="mode on" data-m="soro"><span class="ic">${ICON.soro}</span><div><span class="tag">3 casos</span><h3>Soroterapia</h3><small>Conferência, equipo sem ar, punção e gotejamento.</small></div></button>
-     <button class="mode" disabled><span class="ic">${ICON.ev}</span><div><span class="tag">em breve</span><h3>Endovenosa</h3><small>Diluição na sala de preparo e administração.</small></div></button>
-     <button class="mode" disabled><span class="ic">${ICON.im}</span><div><span class="tag">em breve</span><h3>Intramuscular</h3><small>Troca de agulha, músculo e técnica.</small></div></button>
+     <button class="mode ${MODE==='soro'?'on':''}" data-m="soro"><span class="ic">${ICON.soro}</span><div><span class="tag">3 casos</span><h3>Soroterapia</h3><small>Conferência, equipo sem ar, punção e gotejamento.</small></div></button>
+     <button class="mode ${MODE==='ev_ser'?'on':''}" data-m="ev_ser"><span class="ic">${ICON.ev}</span><div><span class="tag">3 casos · novo</span><h3>EV em seringa</h3><small>Diluição na sala de preparo, punção e injeção lenta.</small></div></button>
+     <button class="mode ${MODE==='ev_bol'?'on':''}" data-m="ev_bol"><span class="ic">${ICON.soro}</span><div><span class="tag">3 casos · novo</span><h3>EV em bolsa</h3><small>Medicação diluída em soro, com gotejamento.</small></div></button>
+     <button class="mode ${MODE==='im'?'on':''}" data-m="im"><span class="ic">${ICON.im}</span><div><span class="tag">3 casos · novo</span><h3>Intramuscular</h3><small>Reconstituição, troca de agulha, local, ângulo e injeção lenta.</small></div></button>
     </div>
     <button class="primary big" id="start">Começar plantão</button>
     <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem.</p>`);
   document.querySelectorAll('.lvl').forEach(b=>b.onclick=()=>{LEVEL=b.dataset.l;document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b));});
-  $('#start').onclick=()=>startMode('soro');document.querySelector('[data-m="soro"]').onclick=()=>startMode('soro');}
+  document.querySelectorAll('.mode[data-m]').forEach(b=>b.onclick=()=>{MODE=b.dataset.m;document.querySelectorAll('.mode[data-m]').forEach(x=>x.classList.toggle('on',x===b));});
+  $('#start').onclick=()=>startMode(MODE);}
+let MODE='soro';
 $('#homeBtn').onclick=home;
 home();
 
 </script>
+
 </body></html>
