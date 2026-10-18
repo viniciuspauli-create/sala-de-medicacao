@@ -23,7 +23,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
-body{background:var(--bg);background-image:radial-gradient(circle at 20% 0%,#E9F8F5 0,transparent 45%),radial-gradient(circle at 100% 100%,var(--bg-2) 0,transparent 50%);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;overscroll-behavior:none}
+body{background:var(--bg);background-image:radial-gradient(circle at 20% 0%,#E9F8F5 0,transparent 45%),radial-gradient(circle at 100% 100%,var(--bg-2) 0,transparent 50%);background-attachment:fixed;color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;overscroll-behavior:none}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--hud)}
 h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.05;font-weight:800}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -33,7 +33,7 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 body.playing .brand b,body.shift .brand b{display:none}
 #menuBtn{display:none} body.shift #menuBtn,body.playing #menuBtn{display:inline-block} body.shift .brand,body.playing .brand{display:none}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
-.chip{font-size:13px;font-weight:800;padding:3px 9px;border-radius:999px;background:var(--warn-soft);color:#7A4E00;box-shadow:inset 0 0 0 2px #F3D9A4}
+.chip{font-size:14px;font-weight:800;padding:3px 9px;border-radius:999px;background:var(--warn-soft);color:#7A4E00;box-shadow:inset 0 0 0 2px #F3D9A4}
 .chip.ok{background:var(--ok-soft);color:var(--ok);box-shadow:none;text-decoration:line-through;text-decoration-thickness:1.5px}
 body{margin:0}
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:8px;padding:8px 12px;margin-top:6px;background:var(--hud);color:#fff;border-radius:16px;box-shadow:0 4px 0 #082E31}
@@ -82,22 +82,22 @@ body{margin:0}
 .rxs{display:flex;align-items:center;gap:10px;background:var(--rx);border-radius:12px;padding:8px 10px;box-shadow:0 3px 0 #E5DCC4;text-align:left;border:0;width:100%}
 .rxs .rxic{flex:none;width:34px;height:34px;border-radius:9px;background:var(--amber);color:#fff;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:16px}
 .rxs .rxt{min-width:0;flex:1}
-.rxs .rxp{font-weight:800;font-size:13.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rxs .rxl{font-family:var(--f-mono);font-size:12.5px;line-height:1.3;color:#5B4A1E}
+.rxs .rxp{font-weight:800;font-size:14.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rxs .rxl{font-family:var(--f-mono);font-size:13.5px;line-height:1.3;color:#5B4A1E}
 .rxs .more{color:var(--muted);font-size:20px}
 .obj{background:var(--surface);border-radius:14px;padding:10px 12px;box-shadow:0 3px 0 var(--line);display:flex;gap:10px;align-items:flex-start}
 .obj .num{flex:none;width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:18px;box-shadow:inset 0 -3px 0 var(--blue-dark)}
 .obj .txt{flex:1;min-width:0}
-.obj .ph{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--amber)}
+.obj .ph{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--amber)}
 .obj .tt{font-family:var(--f-display);font-weight:800;font-size:19px;line-height:1.1}
-.obj .how{font-size:14px;color:var(--muted);margin-top:2px;line-height:1.3}
-.obj .rbtn{flex:none;background:var(--surface-2);border:0;border-radius:10px;padding:6px 8px;font-weight:800;font-size:12px;box-shadow:0 2px 0 var(--line)}
+.obj .how{font-size:15px;color:var(--muted);margin-top:2px;line-height:1.3}
+.obj .rbtn{flex:none;background:var(--surface-2);border:0;border-radius:10px;padding:6px 8px;font-weight:800;font-size:13.5px;box-shadow:0 2px 0 var(--line)}
 .obj.flash{animation:pop .35s cubic-bezier(.3,1.6,.6,1)}
 .gstage{position:relative;flex:1;min-height:420px;border-radius:16px;overflow:hidden;background:#CDEAE5;box-shadow:0 4px 0 var(--line)}
 #game{position:absolute;inset:0}
 #game canvas{display:block;touch-action:none}
 #gToast{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;z-index:4}
-.gt{background:rgba(15,50,56,.93);color:#fff;padding:7px 12px;border-radius:12px;font-weight:700;font-size:13.5px;line-height:1.3;text-align:center;animation:pop .3s cubic-bezier(.3,1.6,.6,1);transition:opacity .4s;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:100%}
+.gt{background:rgba(15,50,56,.93);color:#fff;padding:7px 12px;border-radius:12px;font-weight:700;font-size:15px;line-height:1.3;text-align:center;animation:pop .3s cubic-bezier(.3,1.6,.6,1);transition:opacity .4s;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:100%}
 .gt.ok{background:rgba(30,154,85,.95)} .gt.warn{background:rgba(194,122,0,.96)} .gt.bad{background:rgba(217,64,58,.96)} .gt.out{opacity:0}
 .gt{display:flex;align-items:center;gap:8px;text-align:left}
 .gt .gi{flex:none;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:13px}
@@ -142,7 +142,7 @@ body{margin:0}
 .mhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
 .mhead h2{font-size:26px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.rx{background:var(--rx);border-radius:6px;padding:14px;font-family:var(--f-mono);font-size:13.5px;line-height:1.55;box-shadow:0 4px 0 #E5DCC4}
+.rx{background:var(--rx);border-radius:6px;padding:14px;font-family:var(--f-mono);font-size:14.5px;line-height:1.55;box-shadow:0 4px 0 #E5DCC4}
 .rx h4{margin:0 0 8px;font-family:var(--f-display);font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px dashed #DCCFA8;padding-bottom:6px}
 .rx .item{margin-top:10px;padding:8px 10px;background:var(--amber-soft);border-left:4px solid var(--amber);font-weight:500;border-radius:3px}
 .rx dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 10px} .rx dt{color:var(--muted)} .rx dd{margin:0}
@@ -154,11 +154,11 @@ body{margin:0}
 .alg.yes{background:var(--bad);color:#fff} .alg.no{background:var(--ok-soft);color:var(--ok)}
 .unit{color:var(--muted);font-size:14px;font-weight:600}
 .tbl-wrap{overflow-x:auto}
-.ptbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;min-width:460px}
+.ptbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;min-width:460px}
 .ptbl th{font-family:var(--f-display);font-size:15px;text-transform:uppercase;background:var(--accent);color:#fff;padding:7px 8px;text-align:left}
 .ptbl th.sec{background:var(--hud)}
 .ptbl td{border-bottom:1px solid var(--line);padding:7px 8px;vertical-align:top;width:50%}
-.ptbl td b{display:block} .ptbl td em{display:block;color:var(--muted);font-size:12px;font-style:normal}
+.ptbl td b{display:block} .ptbl td em{display:block;color:var(--muted);font-size:13px;font-style:normal}
 .ptbl .rc{display:flex;gap:6px;align-items:baseline;margin-top:3px}
 .ptbl .rc b{display:inline}
 .ptbl .rc i{flex:none;font-style:normal;font-weight:800;font-size:11px;width:17px;height:17px;border-radius:50%;background:var(--amber);color:#fff;display:inline-grid;place-items:center;transform:translateY(-1px)}
@@ -189,6 +189,47 @@ button{touch-action:manipulation}
 @media (max-height:720px){body.playing .top{margin-top:4px;padding:6px 10px}#gamewrap{gap:6px;margin-top:6px}.gstage{min-height:280px}
   .obj{min-height:0;padding:8px 10px}.obj .num{width:34px;height:34px;font-size:16px}.obj .tt{font-size:17px}.obj .how{font-size:13px}
   .rxs{padding:6px 8px}.rxs .rxic{width:28px;height:28px;font-size:14px}.rxs .rxl{font-size:11.5px}}
+
+/* ===== COMPUTADOR (tela larga, deitada): layout próprio em vez da moldura de celular =====
+   coluna da esquerda: prescrição, passo atual, roteiro sempre aberto e atalhos; à direita, a cena do jogo na altura toda da janela */
+.side{display:none}
+@media (min-width:1000px) and (min-height:600px) and (orientation:landscape){
+  #app{max-width:1000px;padding-inline:24px}
+  .hero h1{font-size:56px} .hero p{font-size:18px;max-width:640px}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:14px} .mode[data-m="misto"]{grid-column:1/-1}
+  .mode{padding:18px} .mode h3{font-size:24px} .mode small{font-size:15px}
+  .levels{gap:12px} .lvl{padding:14px 10px} .lvl b{font-size:21px} .lvl small{font-size:14px}
+  .primary.big{max-width:420px;display:block;margin-inline:auto}
+  #view>.sum{max-width:760px;margin-inline:auto}
+  .mbox{font-size:17px} #modal .mbox[style*="max-width:520px"]{max-width:600px!important}
+  .sbox{max-width:640px}
+  body.playing #app{max-width:1400px;height:100dvh;padding-block:12px 12px}
+  body.playing .top{margin-top:0;padding:10px 16px}
+  body.playing .brand{display:flex} body.playing .brand b{display:inline;font-size:20px}
+  .top .ghost{font-size:15px;padding:8px 14px} .pill{font-size:17px} .pill b{font-size:19px}
+  #gamewrap{display:grid;grid-template-columns:minmax(340px,440px) auto;grid-template-rows:auto auto minmax(0,1fr);column-gap:22px;row-gap:12px;justify-content:center;margin-top:12px}
+  #rxStrip{grid-column:1;grid-row:1} #objCard{grid-column:1;grid-row:2} .side{grid-column:1;grid-row:3}
+  .gstage{grid-column:2;grid-row:1/4;min-height:0;height:100%;aspect-ratio:720/1120;width:auto;max-width:calc(100vw - 520px)}
+  .rxs{padding:12px 14px;align-items:flex-start}
+  .rxs .rxic{width:42px;height:42px;font-size:19px}
+  .rxs .rxp{font-size:17px;white-space:normal}
+  .rxs .rxl{font-size:15.5px;line-height:1.4}
+  .obj{padding:14px 16px;min-height:0}
+  .obj .num{width:48px;height:48px;font-size:22px}
+  .obj .ph{font-size:13.5px} .obj .tt{font-size:24px} .obj .how{font-size:16.5px;line-height:1.4}
+  .obj .rbtn{display:none}
+  .chip{font-size:15px;padding:4px 11px}
+  .side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;background:var(--surface);border-radius:14px;padding:14px 16px;box-shadow:0 3px 0 var(--line)}
+  .side h4{margin:0;font-family:var(--f-display);font-size:18px;font-weight:800}
+  .side .stp{font-size:15.5px;padding:5px 0} .side .stp i{width:28px;height:28px;font-size:15px}
+  .side .stp small{font-size:14px}
+  .side .fase{font-size:13px;margin:10px 0 2px}
+  .side .keys{font-size:15px;color:var(--muted);line-height:1.5;border-top:2px solid var(--surface-2);padding-top:10px;margin-top:auto}
+  .side .keys b{color:var(--ink)}
+  .side kbd{font-family:var(--f-mono);font-size:13px;background:var(--surface-2);border-radius:6px;padding:1px 6px;box-shadow:0 2px 0 var(--line);color:var(--ink)}
+  .gt{font-size:17px;padding:10px 16px}
+  #gToast{left:14px;right:14px}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head><body>
@@ -207,6 +248,7 @@ button{touch-action:manipulation}
   <section id="gamewrap" hidden>
     <button class="rxs" id="rxStrip" aria-label="Abrir prescrição completa"></button>
     <div class="obj" id="objCard"></div>
+    <aside class="side" id="side" aria-label="Roteiro e controles"></aside>
     <div class="gstage"><div id="game"></div><div class="gload" id="gLoad" hidden><i aria-hidden="true"></i>Preparando a sala…</div><div id="gToast" aria-live="polite"></div></div>
   </section>
   <div id="sheet" hidden></div>
@@ -428,9 +470,10 @@ const NEEDLES={'13x4,5':{len:13,cal:4.5,cor:'#8B5A2B',g:'26 G'},'25x7':{len:25,c
 function svgTex(scene,key,[w,h,inner]){
   if(scene.textures.exists(key)) return Promise.resolve();
   return new Promise(res=>{const img=new Image();
-    img.onload=()=>{if(!scene.textures.exists(key))scene.textures.addImage(key,img);res();};
+    /* em tela de alta densidade a imagem é gerada em HIRES× e o quadro mantém o tamanho lógico (w×h), com a textura inteira (UV 0–1) */
+    img.onload=()=>{if(!scene.textures.exists(key)){const tx=scene.textures.addImage(key,img);if(HIRES>1&&tx){const f=tx.get();f.setSize(w,h);f.setUVs(w,h,0,0,1,1);}}res();};
     img.onerror=()=>{console.warn('textura falhou',key);res();};
-    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${DEFS}${inner}</svg>`);});
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(w*HIRES)}" height="${Math.round(h*HIRES)}" viewBox="0 0 ${w} ${h}">${DEFS}${inner}</svg>`);});
 }
 function baseTextures(scene){
   const L=[['tray',ART.tray()],['sharps',ART.sharps()],
@@ -449,12 +492,12 @@ const HEX=s=>Phaser.Display.Color.HexStringToColor(s).color;
 const FONT_B='"Baloo 2", "Trebuchet MS", sans-serif', FONT='Nunito, system-ui, sans-serif';
 /* encolhe um texto para caber na largura (rótulos dentro da bolsa) */
 const fitW=(t,w)=>{if(t.width>w)t.setScale(w/t.width);return t;};
-function T(s,x,y,str,size=16,color='#0F3238',o={}){return s.add.text(x,y,str,{fontFamily:o.display?FONT_B:FONT,fontSize:size+'px',fontStyle:o.w||'800',color,align:o.align||'center',wordWrap:o.wrap?{width:o.wrap}:undefined,stroke:o.stroke,strokeThickness:o.st||0}).setOrigin(o.ox??.5,o.oy??.5);}
+function T(s,x,y,str,size=16,color='#0F3238',o={}){return s.add.text(x,y,str,{fontFamily:o.display?FONT_B:FONT,fontSize:size+'px',fontStyle:o.w||'800',color,align:o.align||'center',resolution:RES,wordWrap:o.wrap?{width:o.wrap}:undefined,stroke:o.stroke,strokeThickness:o.st||0}).setOrigin(o.ox??.5,o.oy??.5);}
 function button(s,x,y,label,cb,{w=210,h=50,color=0x12A58C,dark=0x0B7564,size=19}={}){
   const g=s.add.graphics();
   const draw=p=>{g.clear();g.fillStyle(dark,1);g.fillRoundedRect(-w/2,-h/2+5,w,h,14);g.fillStyle(color,1);g.fillRoundedRect(-w/2,-h/2+(p?4:0),w,h,14);g.fillStyle(0xffffff,.18);g.fillRoundedRect(-w/2+6,-h/2+(p?7:3),w-12,h*.32,10);};
   draw(false);
-  const t=s.add.text(0,0,label,{fontFamily:FONT_B,fontSize:size+'px',fontStyle:'800',color:'#fff'}).setOrigin(.5);
+  const t=s.add.text(0,0,label,{fontFamily:FONT_B,fontSize:size+'px',fontStyle:'800',color:'#fff',resolution:RES}).setOrigin(.5);
   const c=s.add.container(x,y,[g,t]).setSize(w,h+5).setInteractive({useHandCursor:true});
   c.on('pointerdown',()=>{draw(true);t.y=4;}); c.on('pointerout',()=>{draw(false);t.y=0;});
   c.on('pointerup',()=>{draw(false);t.y=0;cb&&cb();});
@@ -681,6 +724,8 @@ function handPos(s){const p=s.input.activePointer;if(!p||(!p.x&&!p.y))return {x:
 const GW=720, GH=1120, DRAWER_Y=900;
 let LEVEL='treino',HINT_UNTIL=0;
 const hlOn=()=>LEVEL==='treino'||performance.now()<HINT_UNTIL;
+/* tamanho da bolsa conforme o volume (100 → 1000 ml) */
+const BAG_SC={100:.62,250:.8,500:.98,1000:1.18};
 const SOL_POOL=[['SF 0,9%',100],['SF 0,9%',250],['SF 0,9%',500],['SF 0,9%',1000],['SG 5%',250],['SG 5%',500],['SG 5%',1000],['Ringer lactato',500],['Ringer lactato',1000]];
 const FASES={conf:'Higiene e luvas',prep:'Sala de preparo',soro:'Preparo do soro',puncao:'Punção venosa',inst:'Instalação',adm:'Administração',reg:'Registro'};
 /* braço na vertical */
@@ -745,13 +790,21 @@ class Guide{
       card.innerHTML=`<div class="num">${left}</div><div class="txt"><div class="phrow"><div class="ph">${FASES[c.f]} · em qualquer ordem</div><button class="rbtn" id="rbtn">Roteiro</button></div><div class="tt">${GROUP_T[c.g]||c.t}</div>
         <div class="chips">${grp.map(y=>{const ok=this.done.has(y.id);return `<span class="chip${ok?' ok':''}">${ok?'✓ ':''}${y.short||y.t}</span>`;}).join('')}</div>${bar}</div>`;}
     else card.innerHTML=`<div class="num">${n}</div><div class="txt"><div class="phrow"><div class="ph">Passo ${n} de ${N} · ${c?FASES[c.f]:'fim'}</div><button class="rbtn" id="rbtn">Roteiro</button></div><div class="tt">${c?c.t:'Tudo pronto'}</div><div class="how">${c?c.how:''}</div>${bar}</div>`;
-    const rb=$('#rbtn');if(rb)rb.onclick=()=>this.sheet();const hb=$('#hintBtn');if(hb)hb.onclick=()=>this.hint();if(flash)this.bump();}
+    sideRender(this);const rb=$('#rbtn');if(rb)rb.onclick=()=>this.sheet();const hb=$('#hintBtn');if(hb)hb.onclick=()=>this.hint();if(flash)this.bump();}
   sheet(){const c=this.cur();let html='',last='';
     this.steps.forEach((x,i)=>{if(x.f!==last){html+=`<div class="fase">${FASES[x.f]}</div>`;last=x.f;}
       const st=this.done.has(x.id)?'done':this.isReady(x)?'now':'';html+=`<div class="stp ${st}"><i>${this.done.has(x.id)?'✓':i+1}</i><div>${x.t}${st==='now'?`<small>${x.how}</small>`:''}</div></div>`;});
     const sh=$('#sheet');sh.hidden=false;sh.innerHTML=`<div class="sbox"><div class="mhead"><h2>Roteiro</h2><button class="ghost" id="shx">Fechar</button></div>${html}</div>`;
     $('#shx').onclick=()=>{sh.hidden=true;};sh.onclick=e=>{if(e.target===sh)sh.hidden=true;};}
 }
+/* painel lateral do computador: roteiro sempre aberto (Treino) e atalhos de teclado */
+const KEYS_HTML=`<div class="keys"><h4>No computador</h4>Clique no material e depois no destino, ou arraste com o mouse. Para apertar, esfregar ou chacoalhar, segure o botão e mova.<br><kbd>Esc</kbd> solta o que está na mão · <kbd>1</kbd> <kbd>2</kbd> braço / suporte · <kbd>T</kbd> tabela · <kbd>P</kbd> prescrição</div>`;
+function sideRender(G){const el=$('#side');if(!el)return;
+  if(!G||LEVEL!=='treino'){el.innerHTML=(G&&LEVEL==='pratica'?`<h4>Prática</h4><p class="unit" style="margin:0">Só a fase aparece. A dica custa 2 pontos.</p>`:G?`<h4>Prova</h4><p class="unit" style="margin:0">Sem roteiro: faça como no plantão.</p>`:'')+KEYS_HTML;return;}
+  let html='<h4>Roteiro</h4><div>',last='';
+  G.steps.forEach((x,i)=>{if(x.f!==last){html+=`<div class="fase">${FASES[x.f]}</div>`;last=x.f;}
+    const st=G.done.has(x.id)?'done':G.isReady(x)?'now':'';html+=`<div class="stp ${st}"><i>${G.done.has(x.id)?'✓':i+1}</i><div>${x.t}</div></div>`;});
+  el.innerHTML=html+'</div>'+KEYS_HTML;const now=el.querySelector('.stp.now');if(now&&el.scrollHeight>el.clientHeight)now.scrollIntoView({block:'center'});}
 function rxStrip(c){$('#rxStrip').innerHTML=`<span class="rxic">Rx</span><span class="rxt"><div class="rxp">${c.p.n} · Leito ${c.leito} · ${c.hora}</div><div class="rxl">${rxLine(c)}</div></span><span class="more">›</span>`;$('#rxStrip').onclick=()=>showRx(c);}
 function rxHTML(c){return `<div class="rx"><h4>Prescrição médica</h4><dl><dt>Paciente</dt><dd>${c.p.n}</dd><dt>Nasc.</dt><dd>${c.p.nasc} (${c.p.idade} anos)</dd><dt>Leito</dt><dd>${c.leito}</dd><dt>Horário</dt><dd>${c.hora}</dd><dt>Motivo</dt><dd>${c.queixa}</dd></dl><div class="item">${rxLine(c)}</div></div>`;}
 function showRx(c){modal(`<div class="mhead"><h2>Prescrição</h2><button class="ghost" id="mx">Fechar</button></div>${rxHTML(c)}`);$('#mx').onclick=closeM;}
@@ -765,8 +818,8 @@ function makeDrawer(s,items,onTap){
   items.forEach((it,i)=>{s.drawerDefs[it.key]=it;const row=i<5?0:1,col=row?i-5:i;const x=74+col*143,y=DRAWER_Y+(row?163:56);
     const bg=s.add.graphics().setScrollFactor(0).setDepth(81);
     const C=s.add.container(x,y).setScrollFactor(0).setDepth(82).setSize(136,104);
-    let ic;if(it.draw){ic=s.add.graphics();ic.y=-14;it.draw(ic);}else{ic=s.add.image(0,-14,it.tex);const sc=Math.min(it.fit||1.3,100/ic.width,58/ic.height);ic.setScale(sc);if(it.rot)ic.setRotation(it.rot);}
-    const lb=T(s,0,32,it.label,24,'#E6F6F3');C.add([ic,lb]);
+    let ic;if(it.draw){ic=s.add.graphics();ic.y=-16;it.draw(ic);ic.setScale(1.12);}else{ic=s.add.image(0,-16,it.tex);const sc=Math.min((it.fit||1.3)*1.15,116/ic.width,66/ic.height);ic.setScale(sc);if(it.rot)ic.setRotation(it.rot);}
+    const lb=fitW(T(s,0,34,it.label,25,'#E6F6F3'),132);C.add([ic,lb]);
     const draw=on=>{bg.clear();bg.fillStyle(on?0xFFC43D:0xffffff,on?1:.1);bg.fillRoundedRect(x-68,y-52,136,104,16);if(on){bg.fillStyle(0x0E4A4F,1);bg.fillRoundedRect(x-63,y-47,126,94,13);}};
     draw(false);C.setInteractive({useHandCursor:true});
     /* arrastar o material da gaveta até onde vai usar (a cena define dStart/dMove/dDrop) */
@@ -791,28 +844,28 @@ class Check extends Phaser.Scene{
   constructor(){super('Check');}
   create(d){const s=this,c=this.c=d.c;this.R=d.R;this.done=false;
     const p=c.p,t=PELE[p.pele];
-    $('#objCard').innerHTML=`<div class="num">1</div><div class="txt"><div class="ph">Conferência</div><div class="tt">O paciente confere com a ficha?</div><div class="how">Compare <b>paciente e pulseira</b> (em cima) com <b>a ficha</b> (embaixo): rosto, nome, nascimento — e alergias × prescrição.</div></div>`;
+    sideRender(null);$('#objCard').innerHTML=`<div class="num">1</div><div class="txt"><div class="ph">Conferência</div><div class="tt">O paciente confere com a ficha?</div><div class="how">Compare <b>paciente e pulseira</b> (em cima) com <b>a ficha</b> (embaixo): rosto, nome, nascimento — e alergias × prescrição.</div></div>`;
     svgTex(this,'bedTop',ART.bedTop()).then(()=>{
       const PC='#0E4A4F',FC='#E8962A';
       /* ===== PAINEL 1: O PACIENTE (quem está no leito) ===== */
       const pb=s.add.graphics();pb.fillStyle(0xE6F6F3,1);pb.fillRoundedRect(8,6,704,618,22);
       s.add.image(360,264,'bedTop').setScale(.8);
       const ph=s.add.graphics().setDepth(4);ph.fillStyle(0x0E4A4F,1);ph.fillRoundedRect(8,6,704,58,{tl:22,tr:22,bl:0,br:0});
-      T(s,32,35,'1 · O PACIENTE',28,'#fff',{ox:0,display:true}).setDepth(5);T(s,690,35,'quem está no leito',20,'#BFE3DD',{ox:1,w:'700'}).setDepth(5);
+      T(s,32,35,'1 · O PACIENTE',28,'#fff',{ox:0,display:true}).setDepth(5);T(s,690,35,'quem está no leito',23,'#BFE3DD',{ox:1,w:'700'}).setDepth(5);
       const f=drawFace(s,256,212,p,78);f.setDepth(5);
       // braço sobre o lençol com a pulseira
       const ag=s.add.graphics().setDepth(6);ag.fillStyle(HEX(t.mid),1);ag.lineStyle(3,HEX(t.line),1);ag.fillRoundedRect(340,330,270,58,29);ag.strokeRoundedRect(340,330,270,58,29);
       ag.fillStyle(0xffffff,1);ag.fillRoundedRect(520,324,30,70,8);ag.fillStyle(c.alergiaW?0xD9403A:0x2D7FD3,1);ag.fillRoundedRect(520,324,30,14,6);
       // lupa: da pulseira no braço para a pulseira ampliada
       ag.lineStyle(4,0x0E4A4F,.55);ag.lineBetween(535,396,535,486);ag.fillStyle(0x0E4A4F,.55);ag.fillTriangle(523,474,547,474,535,490);
-      T(s,520,440,'pulseira ampliada',20,'#3B5A60',{ox:1,w:'700'}).setBackgroundColor('#ffffffcc').setPadding(6,2,6,2).setDepth(6);
+      T(s,520,440,'pulseira ampliada',23,'#3B5A60',{ox:1,w:'700'}).setBackgroundColor('#ffffffcc').setPadding(6,2,6,2).setDepth(6);
       // pulseira ampliada
       const nomeW=c.issue==='nome'?p.alt:p.n, nascW=c.issue==='nasc'?c.nascAlt:p.nasc;
       const pg=s.add.graphics().setDepth(6);pg.fillStyle(0xffffff,1);pg.fillRoundedRect(24,494,672,118,40);pg.lineStyle(3,0x9FB1BB,1);pg.strokeRoundedRect(24,494,672,118,40);
       pg.fillStyle(0x2D7FD3,1);pg.fillRoundedRect(24,494,36,118,{tl:40,bl:40,tr:0,br:0});pg.fillRoundedRect(660,494,36,118,{tl:0,bl:0,tr:40,br:40});
-      T(s,78,520,'NOME',17,'#557178',{ox:0}).setDepth(7);T(s,150,520,nomeW,26,'#0F3238',{ox:0}).setDepth(7);
-      T(s,78,560,'NASC.',17,'#557178',{ox:0}).setDepth(7);T(s,150,560,nascW,25,'#0F3238',{ox:0,w:'700'}).setDepth(7);
-      const al=c.alergiaW||'Nega alergias';T(s,644,588,al==='Nega alergias'?al:'ALERGIA: '+al.toUpperCase(),19,'#fff',{ox:1}).setBackgroundColor(al==='Nega alergias'?'#1E9A55':'#D9403A').setPadding(10,4,10,4).setDepth(7);
+      T(s,76,522,'NOME',20,'#557178',{ox:0}).setDepth(7);fitW(T(s,160,522,nomeW,31,'#0F3238',{ox:0}),490).setDepth(7);
+      T(s,76,566,'NASC.',20,'#557178',{ox:0}).setDepth(7);T(s,160,566,nascW,29,'#0F3238',{ox:0,w:'700'}).setDepth(7);
+      const al=c.alergiaW||'Nega alergias';fitW(T(s,646,592,al==='Nega alergias'?al:'ALERGIA: '+al.toUpperCase(),22,'#fff',{ox:1}),300).setBackgroundColor(al==='Nega alergias'?'#1E9A55':'#D9403A').setPadding(10,4,10,4).setDepth(7);
       const pf=s.add.graphics().setDepth(8);pf.lineStyle(6,0x0E4A4F,1);pf.strokeRoundedRect(8,6,704,618,22);
       /* ===== entre os painéis ===== */
       T(s,360,642,'⇅  compare  ⇅',22,'#0F3238',{display:true}).setBackgroundColor('#FFC43D').setPadding(16,2,16,2).setDepth(9);
@@ -820,19 +873,19 @@ class Check extends Phaser.Scene{
       const cg=s.add.graphics();cg.fillStyle(0xFFFDF4,1);cg.fillRoundedRect(8,660,704,318,22);
       cg.fillStyle(0xE8962A,1);cg.fillRoundedRect(8,660,704,58,{tl:22,tr:22,bl:0,br:0});
       cg.lineStyle(6,0xE8962A,1);cg.strokeRoundedRect(8,660,704,318,22);
-      T(s,32,689,'2 · A FICHA (prontuário)',28,'#fff',{ox:0,display:true});const alF=c.alergiaW;T(s,690,689,alF?'ALERGIA: '+alF.toUpperCase():'Nega alergias',19,alF?'#D9403A':'#1E9A55',{ox:1}).setBackgroundColor('#ffffff').setPadding(10,4,10,4);
+      T(s,26,689,'2 · A FICHA',28,'#fff',{ox:0,display:true});const alF=c.alergiaW;fitW(T(s,696,689,alF?'ALERGIA: '+alF.toUpperCase():'Nega alergias',22,alF?'#D9403A':'#1E9A55',{ox:1}),300).setBackgroundColor('#ffffff').setPadding(10,4,10,4);
       // foto 3x4 do cadastro
       cg.fillStyle(0xffffff,1);cg.fillRoundedRect(30,736,170,206,8);cg.lineStyle(2,0xC9D2D6,1);cg.strokeRoundedRect(30,736,170,206,8);
       cg.fillStyle(0xD3E1EA,1);cg.fillRect(42,748,146,156);
       const phf=drawFace(s,115,826,c.photo,62);
       const msk=s.add.graphics().setVisible(false);msk.fillStyle(0xffffff);msk.fillRect(42,748,146,156);phf.setMask(msk.createGeometryMask());
-      T(s,115,922,'FOTO DO CADASTRO',15,'#557178');
+      T(s,115,924,'FOTO',20,'#557178');
       const tx=224;
-      const fld=(y,lab,val,sz,col)=>{T(s,tx,y,lab,17,'#8A6A30',{ox:0});T(s,tx,y+26,val,sz,col,{ox:0,wrap:470,align:'left'});};
-      fld(738,'NOME',p.n,25,'#0F3238');
-      fld(796,'NASC.',`${p.nasc} · ${p.idade} anos`,24,'#0F3238');
-      fld(854,'LEITO · MOTIVO',`Leito ${c.leito} · ${c.queixa}`,22,'#3B5A60');
-      fld(912,'PRESCRITO',c.tipo==='soro'?`${c.soro.sol} ${c.soro.vol} ml EV`:`${nm(c.d)} ${c.via}`,22,'#8A5A12');
+      const fld=(y,lab,val,sz,col)=>{T(s,tx,y,lab,20,'#8A6A30',{ox:0});fitW(T(s,tx,y+28,val,sz,col,{ox:0}),476);};
+      fld(738,'NOME',p.n,29,'#0F3238');
+      fld(796,'NASC.',`${p.nasc} · ${p.idade} anos`,28,'#0F3238');
+      fld(854,'LEITO · MOTIVO',`Leito ${c.leito} · ${c.queixa}`,26,'#3B5A60');
+      fld(912,'PRESCRITO',c.tipo==='soro'?`${c.soro.sol} ${c.soro.vol} ml EV`:`${nm(c.d)} ${c.via}`,26,'#8A5A12');
       this.stampLayer=s.add.container(0,0).setDepth(50);
       const b1=button(s,190,1050,'NÃO CONFERE',()=>this.decide(false),{w:320,h:88,color:0xD9403A,dark:0x8E2420,size:30});
       const b2=button(s,530,1050,'CONFERE',()=>this.decide(true),{w:320,h:88,color:0x1E9A55,dark:0x12693A,size:30});
@@ -867,15 +920,16 @@ class PrepS extends Phaser.Scene{
     this.guide=new Guide(this,[['prep','sol','Separe a solução prescrita',`Confira na prescrição do topo e toque na bolsa certa.`,null,{g:'pegar',short:`${c.soro.sol} ${c.soro.vol} ml`}],['prep','eq','Separe o equipo',`Toque no equipo indicado na prescrição (macro ou microgotas).`,null,{g:'pegar',short:`Equipo ${c.soro.eq==='macro'?'macrogotas':'microgotas'}`}],['prep','levar','Leve a bandeja ao leito','Toque em Levar ao leito.']]);
     let sols=[[c.soro.sol,c.soro.vol]];shuffle(SOL_POOL).forEach(a=>{if(sols.length<4&&!sols.some(b=>b[0]===a[0]&&b[1]===a[1]))sols.push(a);});sols=shuffle(sols);
     this.srcs=[];
-    sols.forEach(([sol,vol],i)=>{const x=105+i*170,y=196;const o=this.bagC(sol,vol,x,y);o.kind='bag';this.srcs.push(o);});
-    [false,true].forEach((mi,i)=>{const x=220+i*280,y=510;const o=s.add.container(x,y-5,[s.add.image(0,0,mi?'equipoMi':'equipo').setScale(1.1),T(s,0,74,mi?'Microgotas':'Macrogotas',22,'#0F3238')]).setSize(150,160);o.kind='eq';o.micro=mi;this.srcs.push(o);});
+    sols.forEach(([sol,vol],i)=>{const x=105+i*170,y=210;const o=this.bagC(sol,vol,x,y);o.kind='bag';this.srcs.push(o);});
+    [false,true].forEach((mi,i)=>{const x=220+i*280,y=510;const o=s.add.container(x,y-5,[s.add.image(0,0,mi?'equipoMi':'equipo').setScale(1.1),T(s,0,74,mi?'Microgotas':'Macrogotas',25,'#0F3238',{display:true})]).setSize(150,160);o.kind='eq';o.micro=mi;this.srcs.push(o);});
     this.input.dragDistanceThreshold=12;
     this.srcs.forEach(o=>{o.setInteractive({useHandCursor:true});o.home={x:o.x,y:o.y};
       dragify(this,o,()=>this.toggle(o),p=>{const toTray=p.y>640;if(toTray!==!!o.onTray)this.toggle(o);else if(o.onTray)this.layout();else this.tweens.add({targets:o,x:o.home.x,y:o.home.y,duration:240,ease:'Back.Out'});return true;});});
     this.go=button(s,360,1060,'Levar ao leito ▶',()=>{if(!this.guide.can('levar'))return;this.finish();},{w:420,h:80,size:28});
     this.hl=s.add.graphics().setDepth(70);
   }
-  bagC(sol,vol,x,y){const sc={100:.85,250:.95,500:1.05,1000:1.15}[vol];const o=this.add.container(x,y,[this.add.image(0,0,'bag').setScale(sc),fitW(T(this,0,-22*sc,sol,Math.round(17*sc),'#fff',{display:true}),78*sc),T(this,0,4*sc,vol+' ml',Math.round(17*sc),'#fff'),T(this,0,140,`${sol}\n${vol} ml`,23,'#0F3238')]).setSize(120*sc,200*sc);o.sol=sol;o.vol=vol;return o;}
+  bagC(sol,vol,x,y){const sc=BAG_SC[vol]||1,dy=90-90*sc;/* base de todas as bolsas na mesma linha: a de 1000 ml fica bem maior que a de 100 ml */
+    const o=this.add.container(x,y,[this.add.image(0,dy,'bag').setScale(sc),fitW(T(this,0,dy-20*sc,sol,Math.round(19*sc),'#fff',{display:true}),80*sc),fitW(T(this,0,dy+8*sc,vol+' ml',Math.round(22*sc),'#fff',{display:true}),84*sc),T(this,0,128,`${sol}\n${vol} ml`,24,'#0F3238',{display:true})]).setSize(150,250);o.sol=sol;o.vol=vol;return o;}
   toggle(o){const c=this.c;
     if(o.onTray){o.onTray=false;this.tray=this.tray.filter(x=>x!==o);this.tweens.add({targets:o,x:o.home.x,y:o.home.y,duration:250});this.layout();return;}
     const ok=o.kind==='bag'?(o.sol===c.soro.sol&&o.vol===c.soro.vol):o.micro===(c.soro.eq==='micro');
@@ -945,7 +999,7 @@ class BedS extends Phaser.Scene{
     // tubo indo para o braço
     this.tubeArm=this.add.graphics().setDepth(9);
     // abas
-    if(!this.isEV)this.tabs=['braco','suporte'].map((v,i)=>{const b=button(s,85+i*160,46,v==='braco'?'Braço':'Suporte',()=>this.goView(v),{w:150,h:62,size:24,color:0x557178,dark:0x3A4E53});b.setScrollFactor(0).setDepth(85);return b;});
+    if(!this.isEV)this.tabs=['braco','suporte'].map((v,i)=>{const b=button(s,85+i*160,46,v==='braco'?'Braço':'Suporte',()=>this.goView(v),{w:150,h:62,size:28,color:0x557178,dark:0x3A4E53});b.setScrollFactor(0).setDepth(85);return b;});
     // gaveta
     const BASE_IT=[{key:'luvas',label:'Luvas',tex:'gloves'},{key:'garrote',label:'Garrote',tex:'garroteRoll'},{key:'alcool',label:'Álcool',tex:'alcool'},
       {key:'cateter',label:'Cateter',tex:'cat20',rot:-Math.PI/4,fit:.6},{key:'extensor',label:'Extensor',tex:'extensor'},{key:'curativo',label:'Curativo',tex:'curativo'},
@@ -1068,7 +1122,7 @@ class BedS extends Phaser.Scene{
     st.gar={y};snd('snap',0);this.setSel(null);toast('Garrote amarrado. Toque nele quando for soltar.','ok');this.guide.complete('garrote');this.redrawArm();
     if(this.garZone)this.garZone.destroy();const [l,r]=this.armEdges(y);
     this.garZone=this.add.zone((l+r)/2,y,r-l+80,70).setInteractive({useHandCursor:true}).setDepth(30);
-    const solta=()=>{if(this.sel&&this.sel!=='garrote')return;if(!st.cath){toast('Puncione antes de soltar o garrote. Se quiser reposicionar, toque no garrote da gaveta.');return;}
+    const solta=()=>{if(this.sel&&this.sel!=='garrote'&&this.sel!=='mandril')return;if(!st.cath){toast('Puncione antes de soltar o garrote. Se quiser reposicionar, toque no garrote da gaveta.');return;}
       if(!this.guide.can('soltar'))return;st.gar=null;snd('snap',0);this.garZone.destroy();this.garZone=null;toast('Garrote solto.','ok');this.guide.complete('soltar');this.redrawArm();};
     dragify(this,this.garZone,solta,()=>{solta();return false;});}
   redrawArm(){const g=this.armG,st=this.st;g.clear();
@@ -1117,13 +1171,16 @@ class BedS extends Phaser.Scene{
       st.cath={x,y,g};this.setSel(null);
       this.add.image(x,y+20,'catIn'+g).setRotation(Math.PI/2).setScale(1.1).setDepth(7);
       this.mandImg=this.add.image(x,y+100,'mandril').setRotation(Math.PI/2).setScale(1.2).setDepth(9).setInteractive({useHandCursor:true});
-      dragify(this,this.mandImg,()=>{if(!st.mandril)return;this.setSel('mandril','mandril (perfurocortante)');toast('Agora toque no coletor amarelo (ou arraste até ele).');},
+      dragify(this,this.mandImg,()=>{if(!st.mandril)return;if(this.sel==='mandril'){this.setSel(null);toast('Mandril solto. Toque nele de novo quando for descartar.');return;}
+        this.setSel('mandril','mandril (perfurocortante)');toast(st.gar?'Mandril na mão. Solte o garrote (toque nele) e depois toque no coletor amarelo.':'Agora toque no coletor amarelo (ou arraste até ele).');},
         p=>{if(!st.mandril)return false;const w=this.wp(p);if(Math.hypot(w.x-610,w.y-790)<120){this.setSel('mandril','mandril (perfurocortante)');this.worldTap(610,790);return !st.mandril;}
           toast('Leve o mandril até o coletor amarelo.','info');return false;});
       toast('Refluxo! Agora solte o garrote.','ok');this.guide.complete('puncao');this.redrawArm();});}
   /* ---------- suporte de soro ---------- */
   hang(){const B=this.st.bag;B.hung=true;this.drawer.soro.disable();this.setSel(null);this.hookT.setVisible(false);
-    this.bagImg=this.add.container(1060,200,[this.add.image(0,0,'bag').setScale(1.5),fitW(T(this,0,-30,this.c.soro.sol,24,'#fff',{display:true}),118),T(this,0,4,this.c.soro.vol+' ml',22,'#fff'),...(this.c.tipo==='ev_bol'?[T(this,0,66,'+ '+nm(this.c.d),20,'#0F3238').setBackgroundColor('#ffffff').setPadding(8,2,8,2)]:[])]).setDepth(9);
+    /* tamanho conforme o volume; a saída da bolsa fica sempre no mesmo ponto (y=330) e uma alça liga a bolsa ao gancho */
+    {const k=Math.min(1.63,1.47*(BAG_SC[this.c.soro.vol]||1)),y=330-86*k,f=k/1.5,hang=this.add.graphics();hang.lineStyle(4,0x8FB0C2,1);hang.lineBetween(0,62-y,0,-80*k);
+    this.bagImg=this.add.container(1060,y,[hang,this.add.image(0,0,'bag').setScale(k),fitW(T(this,0,-30*f,this.c.soro.sol,Math.max(18,Math.round(26*f)),'#fff',{display:true}),118*f),fitW(T(this,0,6*f,this.c.soro.vol+' ml',Math.max(19,Math.round(26*f)),'#fff',{display:true}),124*f),...(this.c.tipo==='ev_bol'?[fitW(T(this,0,Math.max(66*f,70),'+ '+nm(this.c.d),21,'#0F3238'),220).setBackgroundColor('#ffffff').setPadding(8,2,8,2)]:[])]).setDepth(9);}
     snd('clink',0);toast('Soro pendurado.','ok');this.guide.complete('pendurar');}
   buildSupport(){const s=this,B=this.st.bag;
     this.tubePath=null;
@@ -1135,7 +1192,7 @@ class BedS extends Phaser.Scene{
       if(!B.eq){toast('Toque no Equipo na gaveta primeiro.');return;}
       let want=dy>25?false:dy<-25?true:!B.open;this.setRoller(want);});
     /* área de toque bem maior que a câmara: dá para apertar ao lado e continuar vendo o nível */
-    this.chZ=s.add.zone(1060,-600,320,260).setInteractive({useHandCursor:true}).setDepth(40);
+    this.chZ=s.add.zone(1060,-600,300,170).setInteractive({useHandCursor:true}).setDepth(40);
     this.chZ.on('pointerdown',()=>{if(!B.spiked){if(B.eq)toast('Perfure a bolsa antes de encher a câmara.');return;}if(!this.guide.can('camara'))return;if(B.ch>=1){toast('A câmara já está cheia.');return;}
       /* cada aperto empurra um pouco de soro; segurar continua enchendo devagar */
       this.holding=true;this.squeeze=1;B.ch=Math.min(1,B.ch+.12);snd('squeeze',40);buzz(8);
@@ -1190,6 +1247,7 @@ class BedS extends Phaser.Scene{
     g.clear();
     if(B.eq){const sx=1060,tip=B.spiked?330:(this.spikeDrag!==undefined?this.spikeDrag:430),chT=tip+40,chB=tip+190;
       this.spike.setPosition(sx,tip+20);this.chZ.setPosition(sx,(chT+chB)/2);
+      {const on=B.spiked&&!this.guide.done.has('camara');if(this.chZ.input&&this.chZ.input.enabled!==on)this.chZ.input.enabled=on;}
       if(!B.spiked&&B.hung){const a2=.5+.4*Math.sin(time/200);g.lineStyle(5,0xE8962A,a2);for(let yy=tip-12;yy>342;yy-=22)g.lineBetween(sx,yy,sx,Math.max(342,yy-12));g.fillStyle(0xE8962A,a2);g.fillTriangle(sx-14,352,sx+14,352,sx,332);}
       g.fillStyle(0xE9F1F5,1);g.fillTriangle(sx-12,tip+40,sx+12,tip+40,sx,tip);g.lineStyle(2,0x9FB1BB,1);g.strokeTriangle(sx-9,tip+40,sx+9,tip+40,sx,tip);
       this.chTop=chT;const sq=1-.2*(this.squeeze||0),cw=72*sq;
@@ -1362,28 +1420,28 @@ class PrepEV extends Phaser.Scene{
     bg.fillStyle(0xffffff,.65);bg.fillRoundedRect(16,24,688,500,22);
     bg.fillStyle(0x9FB1BB,1);bg.fillRect(16,258,688,10);bg.fillRect(16,432,688,10);
     bg.fillStyle(0xC9D6DE,1);bg.fillRoundedRect(16,546,688,440,22);bg.fillStyle(0xffffff,.8);bg.fillRect(30,558,660,6);
-    T(s,36,46,'PRATELEIRA',20,'#557178',{ox:0});T(s,36,582,'BANCADA',20,'#557178',{ox:0});T(s,600,582,'arraste para cima para devolver',17,'#8EA3A8',{ox:1,w:'700'});
+    T(s,36,46,'PRATELEIRA',20,'#557178',{ox:0});T(s,36,582,'BANCADA',20,'#557178',{ox:0});T(s,600,582,'arraste para cima para devolver',19,'#8EA3A8',{ox:1,w:'700'});
     // medicamentos
     this.shelfMed={};
     shuffle([c.key,...shuffle(POOL[M].filter(k=>k!==c.key)).slice(0,3)]).forEach((k,i)=>{const dd=D[k],x=100+i*173;
       const o=s.add.container(x,132,[s.add.image(0,0,dd.apres==='frasco'?'frasco':'ampola').setScale(1.05)]).setSize(130,150).setInteractive({useHandCursor:true});
-      T(s,x,226,`${nm(dd)}\n${dd.apres==='frasco'?dd.dose+' · pó':dd.dose}`,nm(dd).length>16?18:21,'#0F3238',{wrap:165});o.on('pointerup',()=>this.tapShelf({kind:'med',key:k}));this.shelfMed[k]=o;});
+      fitW(T(s,x,226,`${nm(dd)}\n${dd.apres==='frasco'?dd.dose+' · pó':dd.dose}`,nm(dd).length>16?20:23,'#0F3238',{wrap:168}),158);o.on('pointerup',()=>this.tapShelf({kind:'med',key:k}));this.shelfMed[k]=o;});
     // diluentes / bolsas
     const dl=(kind,x,tex,lab)=>{const o=s.add.container(x,334,[s.add.image(0,0,tex).setScale(.85)]).setSize(90,120).setInteractive({useHandCursor:true});T(s,x,410,lab,21,'#0F3238');o.on('pointerup',()=>this.tapShelf({kind}));return o;};
     this.shelfABD=dl('abd',62,'abd','ABD\n10 ml');
     this.shelfBag={};
     if(this.bol){shuffle([['SF 0,9%',100],['SF 0,9%',250],['SG 5%',250]]).forEach(([sol,vol],i)=>{const x=155+i*88;
-        const o=s.add.container(x,326,[s.add.image(0,0,'bag').setScale(.5)]).setSize(80,110).setInteractive({useHandCursor:true});T(s,x,404,`${sol}\n${vol} ml`,17,'#0F3238');
+        const k=BAG_SC[vol]*.58;const o=s.add.container(x,326,[s.add.image(0,52-90*k,'bag').setScale(k)]).setSize(84,120).setInteractive({useHandCursor:true});T(s,x,404,`${sol}\n${vol} ml`,19,'#0F3238');
         o.on('pointerup',()=>this.tapShelf({kind:'bag',sol,vol}));this.shelfBag[sol+vol]=o;(this.bagSpecs=this.bagSpecs||[]).push([o,{kind:'bag',sol,vol}]);});}
     else this.shelfSF=dl('sf',165,'kit','SF 0,9%\n10 ml');
     // seringas
     this.shelfSyr={};const sxs=this.bol?[465,618]:[360,560],sk=this.bol?.55:.75;
     [3,5,10,20].forEach((cap,i)=>{const x=sxs[i%2],y=i<2?300:378;const g=s.add.graphics();drawSyr(g,cap,0,null,LIQ_DIL,sk);
-      const o=s.add.container(x,y,[g,T(s,0,30,`seringa ${cap} ml`,this.bol?17:20,'#0F3238')]).setSize(this.bol?140:180,72).setInteractive({useHandCursor:true});o.on('pointerup',()=>this.tapShelf({kind:'syr',cap}));this.shelfSyr[cap]=o;});
+      const o=s.add.container(x,y,[g,fitW(T(s,0,30,`seringa ${cap} ml`,this.bol?20:23,'#0F3238'),this.bol?150:190)]).setSize(this.bol?140:180,72).setInteractive({useHandCursor:true});o.on('pointerup',()=>this.tapShelf({kind:'syr',cap}));this.shelfSyr[cap]=o;});
     // agulhas e etiqueta
     this.shelfNd={};
     const nds=this.im?['40x12','30x7','25x7','30x8','13x4,5']:['40x12','25x7','13x4,5'];
-    nds.forEach((k,i)=>{const x=this.im?62+i*112:95+i*160;const o=s.add.container(x,474,[s.add.image(0,0,'nd_'+k).setScale(this.im?.78:1.05),T(s,0,32,(this.im?'':'agulha ')+k.replace('x',' × '),this.im?18:20,'#0F3238')]).setSize(this.im?108:150,66).setInteractive({useHandCursor:true});
+    nds.forEach((k,i)=>{const x=this.im?62+i*112:95+i*160;const o=s.add.container(x,474,[s.add.image(0,0,'nd_'+k).setScale(this.im?.78:1.05),fitW(T(s,0,32,k.replace('x',' × '),this.im?21:24,'#0F3238'),this.im?108:150)]).setSize(this.im?108:150,66).setInteractive({useHandCursor:true});
       o.on('pointerup',()=>this.tapShelf({kind:'needle',key:k}));this.shelfNd[k]=o;});
     const eg=s.add.graphics();eg.fillStyle(0xffffff,1);eg.fillRoundedRect(-44,-22,88,40,6);eg.lineStyle(2,0x9FB1BB,1);eg.strokeRoundedRect(-44,-22,88,40,6);eg.fillStyle(0xE8962A,1);eg.fillRect(-44,-22,14,40);eg.fillStyle(0x9FB1BB,1);[-10,0,10].forEach(yy=>eg.fillRect(-24,yy-2,58,4));
     this.etiq=s.add.container(this.im?648:605,466,[eg,T(s,0,40,'etiqueta',20,'#0F3238')]).setSize(this.im?96:130,80).setInteractive({useHandCursor:true});this.etiq.on('pointerup',()=>this.tapShelf({kind:'label'}));
@@ -1450,7 +1508,7 @@ class PrepEV extends Phaser.Scene{
   slotPos(i){return {x:72+i*112,y:672};}
   addBench(it){const s=this;if(this.bench.length>=5){toast('A bancada está cheia. Devolva à prateleira o que não vai usar (arraste de volta).','warn');return null;}
     const i=this.bench.length,p=this.slotPos(i);
-    it.img=s.add.image(0,0,it.tex).setScale(.95);it.lab=T(s,0,84,it.label,it.label.length>11?15:18,'#0F3238');
+    it.img=s.add.image(0,0,it.tex).setScale(.95);it.lab=fitW(T(s,0,84,it.label,it.label.length>11?18:21,'#0F3238'),124);
     it.C=s.add.container(p.x,p.y,[it.img,it.lab]).setSize(100,170).setInteractive({useHandCursor:true});dragify(this,it.C,()=>this.tapBench(it),pp=>this.dropBench(it,pp));
     if(it.kind==='med'&&it.fr)this.shakeOn(it.C,()=>!it.powder&&!it.mixed&&this.sel!=='syr'&&!this._anim,()=>this.agitar(it),true);
     this.bench.push(it);return it;}
@@ -1506,7 +1564,7 @@ class PrepEV extends Phaser.Scene{
     if(o.kind==='bag'){if(!this.guide.can('bolsa'))return;const ok=o.sol==='SF 0,9%'&&o.vol===bagVol(sp);
       if(this.bag){if(this.bag.drug>0){toast('A bolsa da bancada já tem medicação.','warn');return;}this.bag.C.destroy();}
       const ov=this.add.graphics();
-      const C=this.add.container(618,880,[this.add.image(0,0,'bag').setScale(.55),ov,T(this,0,64,`${o.sol} ${o.vol} ml`,15,'#0F3238')]).setSize(110,140).setInteractive({useHandCursor:true});
+      const C=this.add.container(618,880,[this.add.image(0,0,'bag').setScale(.55*BAG_SC[o.vol]/.8),ov,fitW(T(this,0,64,`${o.sol} ${o.vol} ml`,18,'#0F3238'),150)]).setSize(110,140).setInteractive({useHandCursor:true});
       this.bag={kind:'bag',open:true,sol:o.sol,vol:o.vol,drug:0,drugKey:null,extra:0,homog:false,labeled:false,C,ov,img:C.list[0]};
       dragify(this,C,()=>this.tapBench(this.bag),p=>this.dropBag(p));
       {const B0=this.bag;this.shakeOn(C,()=>B0.drug>0&&!B0.homog&&this.sel!=='syr'&&!this._anim,()=>this.homog(B0));}
@@ -1858,11 +1916,28 @@ function puncturePanelP(s,gauge,cb){
 
 
 /* ================= APP mobile: início, fluxo de casos, resultados ================= */
-let GAME=null,READY=null,BOOT=null;
+let GAME=null,READY=null,BOOT=null,HIRES=1;
+/* ---------- nitidez: o jogo pensa em 720×1120, mas o canvas desenha em RES× (tela de alta densidade) ----------
+   O WebGL recebe um "tradutor" que multiplica viewport/scissor do quadro principal por RES; toque, posições e
+   tamanhos continuam em 720×1120. Textos são rasterizados em RES× (resolution). Sem WebGL, cai no modo normal. */
+const RES=(()=>{try{const dpr=window.devicePixelRatio||1,wide=matchMedia('(min-width:1000px) and (min-height:600px) and (orientation:landscape)').matches;
+  const cssW=wide?(innerHeight-90)*GW/GH:Math.min(innerWidth-20,innerHeight*GW/GH);return Math.min(2,Math.max(1,Math.ceil(dpr*cssW/GW*4)/4));}catch(e){return 1;}})();
+function hiResGL(cv){if(RES<=1)return null;
+  const real=cv.getContext('webgl',{alpha:false,depth:true,antialias:true,premultipliedAlpha:true,stencil:true,preserveDrawingBuffer:false});if(!real)return null;
+  let fb=null;const cache={},r=v=>Math.round(v*RES);
+  return new Proxy(real,{get(t,k){
+    if(k==='drawingBufferHeight')return Math.round(t.drawingBufferHeight/RES);
+    if(k==='drawingBufferWidth')return Math.round(t.drawingBufferWidth/RES);
+    if(k==='viewport')return cache.v||(cache.v=(x,y,w,h)=>fb?t.viewport(x,y,w,h):t.viewport(r(x),r(y),r(w),r(h)));
+    if(k==='scissor')return cache.s||(cache.s=(x,y,w,h)=>fb?t.scissor(x,y,w,h):t.scissor(r(x),r(y),r(w),r(h)));
+    if(k==='bindFramebuffer')return cache.b||(cache.b=(tg,f)=>{if(tg===t.FRAMEBUFFER)fb=f;t.bindFramebuffer(tg,f);});
+    const v=t[k];return typeof v==='function'?(cache['f'+String(k)]||(cache['f'+String(k)]=v.bind(t))):v;}});}
 class Boot extends Phaser.Scene{constructor(){super('Boot');}create(){baseTextures(this).then(()=>BOOT&&BOOT());}}
 function ensureGame(){if(READY)return READY;
   READY=(async()=>{try{await Promise.race([Promise.all([document.fonts.load('800 20px "Baloo 2"'),document.fonts.load('800 16px Nunito'),document.fonts.load('700 16px Nunito')]),new Promise(r=>setTimeout(r,2500))]);}catch(e){}
-    await new Promise(res=>{BOOT=res;GAME=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:GW,height:GH,backgroundColor:'#CDEAE5',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},input:{activePointers:2},scene:[Boot,Check,PrepS,BedS,PrepEV,BedEV,BedIM]});});
+    await new Promise(res=>{BOOT=res;const cv=document.createElement('canvas'),gl=hiResGL(cv);if(gl)HIRES=RES;
+      GAME=new Phaser.Game({...(gl?{type:Phaser.WEBGL,canvas:cv,context:gl}:{type:Phaser.AUTO}),parent:'game',width:GW,height:GH,backgroundColor:'#CDEAE5',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},input:{activePointers:2},scene:[Boot,Check,PrepS,BedS,PrepEV,BedEV,BedIM]});
+      if(gl){const hi=()=>{if(cv.width!==GW*RES){cv.width=GW*RES;cv.height=GH*RES;}if(GAME.renderer&&GAME.renderer.resize)GAME.renderer.resize(GW,GH);};hi();GAME.events.once('ready',hi);GAME.scale.on('resize',hi);}});
     /* o cartão de objetivo muda de altura a cada passo: reajusta o canvas no quadro seguinte para nada ficar cortado */
     {let q=0;const fit=()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;if(GAME)GAME.scale.refresh();placeToasts();clearTimeout(fit.t);fit.t=setTimeout(()=>{if(GAME)GAME.scale.refresh();placeToasts();},250);});};
      try{new ResizeObserver(fit).observe(document.querySelector('.gstage'));}catch(e){}
@@ -1875,7 +1950,15 @@ $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!$('#modal').
 /* com a tabela, a prescrição ou o roteiro abertos, o jogo não recebe toques: o Phaser escuta o "soltar" na janela inteira e repassaria o toque ao que está atrás */
 function syncInput(){if(GAME&&GAME.input)GAME.input.enabled=$('#modal').hidden&&$('#sheet').hidden;}
 try{const mo=new MutationObserver(syncInput);mo.observe($('#modal'),{attributes:true,attributeFilter:['hidden']});mo.observe($('#sheet'),{attributes:true,attributeFilter:['hidden']});}catch(e){}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').dataset.lock){closeM();$('#sheet').hidden=true;}});
+document.addEventListener('keydown',e=>{const open=!$('#modal').hidden||!$('#sheet').hidden;
+  if(e.key==='Escape'){if(open){if(!$('#modal').dataset.lock){closeM();$('#sheet').hidden=true;}return;}
+    /* Esc também solta o material que está na mão */
+    const sc=GAME&&CUR&&GAME.scene.getScenes(true).find(x=>x.setSel&&x.sel);if(sc&&!sc._anim){sc.setSel(null);toast('Material solto.');}return;}
+  if(open||e.ctrlKey||e.metaKey||e.altKey||!CUR||!GAME||/input|textarea/i.test((e.target&&e.target.tagName)||''))return;
+  const k=e.key.toLowerCase(),sc=GAME.scene.getScenes(true).find(x=>x.goView&&x.tabs);
+  if((k==='1'||k==='2')&&sc){sc.goView(k==='1'?'braco':'suporte');}
+  else if(k==='t'){$('#protoBtn').click();}
+  else if(k==='p'){$('#rxStrip').click();}});
 $('#protoBtn').onclick=openProto;
 $('#sndBtn').onclick=()=>setSound(!FX.on);$('#sndBtn').innerHTML=FX.on?ICON_SND.on:ICON_SND.off;$('#sndBtn').setAttribute('aria-pressed',String(FX.on));
 
@@ -1949,14 +2032,14 @@ function howTo(then){modal(`<div class="mhead"><h2>Como jogar</h2>${then?'':'<bu
   const fin=go=>{closeM();try{localStorage.setItem('sm_tut','1');}catch(e){}if(go&&then)then();};$('#hok').onclick=()=>fin(true);const mx=$('#mx');if(mx)mx.onclick=()=>fin(false);}
 function home(){S.run++;CUR=null;$('#casePill').hidden=true;$('#ptsPill').hidden=true;document.body.classList.remove('shift');$('#pts').textContent='0';
   showView(`<section class="hero"><p class="eyebrow">Simulador · técnico de enfermagem</p><h1>Prepare, puncione, <span>administre.</span></h1>
-    <p>Confira o paciente, prepare a medicação, puncione a veia e administre. Feito para jogar no celular.</p></section>
+    <p>Confira o paciente, prepare a medicação, puncione a veia e administre. Feito para o celular, com tela própria no computador.</p></section>
     <p class="sec-l">Escolha o nível</p>
     <div class="levels">${[['treino','Treino','Passo a passo com destaques'],['pratica','Prática','Só a fase atual'],['prova','Prova','Sem roteiro']].map(([k,t,d])=>`<button class="lvl ${LEVEL===k?'on':''}" data-l="${k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
     <p class="sec-l">Escolha o procedimento</p>
     <div class="modes">${MODES.map(([k,ic,t,d])=>`<button class="mode ${MODE===k?'on':''}" data-m="${k}"><span class="ic">${ICON[ic]}</span><div><span class="tag">3 casos${k==='misto'?' · sorteados':''}</span><h3>${t}</h3><small>${d}</small><span class="bw" data-b="${k}">${bestTxt(k)}</span></div></button>`).join('')}</div>
     <button class="primary big" id="start">Começar plantão</button>
     <button class="linkbtn" id="howBtn">Como jogar</button>
-    <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem. <span class="ver">· v8.8</span></p>`);
+    <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem. <span class="ver">· v8.11</span></p>`);
   document.querySelectorAll('.lvl').forEach(b=>b.onclick=()=>{LEVEL=b.dataset.l;sfx('tap');document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.bw').forEach(x=>x.innerHTML=bestTxt(x.dataset.b));});
   document.querySelectorAll('.mode[data-m]').forEach(b=>b.onclick=()=>{MODE=b.dataset.m;sfx('tap');document.querySelectorAll('.mode[data-m]').forEach(x=>x.classList.toggle('on',x===b));});
   $('#howBtn').onclick=()=>howTo(null);
