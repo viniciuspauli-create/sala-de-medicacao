@@ -1,4 +1,4 @@
-# Sala de Medicação — design (v8.11, mobile em retrato + layout próprio no PC)
+# Sala de Medicação — design (v9.0, mobile em retrato + layout próprio no PC)
 
 > **Estado (17/out/2026):** `claude/sala-de-medicacao-index.html` = **v8.8 (v8.7 polida + sons de procedimento)**, publicada no artifact "Sala de Medicação" (https://claude.ai/artifact/GXmqm8cxJfBWhuc4aT1a86). O GitHub `main` tem a v8.2 (`400078a`); a v8.8 aguarda upload manual do `index.html`. Link do Pages: https://viniciuspauli-create.github.io/sala-de-medicacao/
 
@@ -41,8 +41,13 @@ Público: técnico de enfermagem. Stack: Phaser 3.80.1 (2D), canvas 720×1120 em
   - Computador (≥1000 px, deitado): grid com coluna esquerda (prescrição, passo, `#side` com roteiro sempre aberto no Treino e atalhos) e cena na altura toda (`aspect-ratio:720/1120`). Atalhos: Esc solta o material, 1/2 braço/suporte, T tabela, P prescrição. Menu em 2 colunas.
   - Robô: rolete fechado com mouse real, câmara ao lado, equipo sem ar, mandril com garrote apertado (pegar, soltar, soltar garrote, descartar) em 390×844 e 1440×900; atalhos; capturas em 1280×720 e 1920×1080. Zero erros de console.
 - **v8.10 (nitidez):** o canvas desenha em `RES`× (1–2, conforme densidade e tamanho da tela) sem mudar as coordenadas do jogo: `hiResGL` embrulha o contexto WebGL num Proxy que multiplica `viewport`/`scissor` do quadro principal e devolve `drawingBuffer*` em 720×1120; textos com `resolution:RES`. Toque, posições e cenas inalterados; sem WebGL cai no modo normal. **v8.11:** imagens SVG também em `HIRES`× (`svgTex` gera em HIRES× e o quadro volta ao tamanho lógico com `setSize(w,h)` + `setUVs(...,0,0,1,1)`), então ícones da gaveta e materiais ficam nítidos sem mudar tamanhos. `HIRES` só >1 quando o Proxy WebGL está ativo. Ficha: "FOTO DO CADASTRO" → "FOTO".
+- **v9.0 (feedback: PC na horizontal e paciente errado):**
+  - Paciente errado = outra pessoa (`issue:'outro'`, `otherPatient`): no leito e na pulseira está alguém com outro nome, outro sobrenome, ≥8 anos de diferença e aparência diferente; ficha e prescrição são do paciente certo. Sumiram as pegadinhas de nome parecido, data trocada e só foto diferente. Alergia como divergência continua.
+  - PC em tela larga (fase 1): canvas por cena via `setW(scene,w,h)` (`GAME.scale.setGameSize` + `--ar/--arn` no `.gstage`; o Proxy WebGL acompanha o tamanho). Conferência 1440×640 (paciente à esquerda, ficha e botões à direita, deslocando os objetos criados depois de `n0`); preparo do soro 1440×640 (prateleiras à esquerda, bandeja à direita: `toTray=p.x>730`); leito do soro/bolsa 1440×1120 com braço e suporte lado a lado (`this.wide`, sem abas, `goView` só troca `view`). Painéis (cateter, punção, aspirar, injetar) centralizados com `container(s.wide?360:0)`; régua da punção usa `p.x-C.x`.
+  - **Ainda em pé no PC:** sala de preparo EV/IM (`PrepEV`), leito EV seringa (`BedEV`) e IM (`BedIM`). Próxima fase.
+  - Barra lateral em cartões: Treino mostra o roteiro; Prática e Prova mostram o **Registro** (só o que já foi feito); atalhos sem 1/2 (no PC o leito já mostra as duas vistas).
 - Níveis: Treino (passo atual + destaque; grupos como lista; avisa ao pegar errado), Prática (só a fase; dica −2), Prova (sem roteiro).
-- Conferência estilo "Papers, Please". Divergências raras (~12% + 3% alergia); ~30% com alergia que não conflita.
+- Conferência estilo "Papers, Please". Divergências raras (~12% outro paciente + 3% alergia); ~30% com alergia que não conflita.
 
 ## Modos
 1. **Soroterapia**: Check → PrepS → BedS (braço + suporte).

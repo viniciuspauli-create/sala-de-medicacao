@@ -1,6 +1,6 @@
 # Sala de Medicação
 
-Simulador para técnicos de enfermagem, feito para jogar no celular em pé; no computador tem layout próprio, com o roteiro ao lado e a cena na altura toda da tela. O jogador confere o paciente, prepara a medicação, faz a punção e administra.
+Simulador para técnicos de enfermagem, feito para jogar no celular em pé; no computador usa a tela deitada: roteiro ou registro ao lado e, no soro, braço e suporte lado a lado. O jogador confere o paciente, prepara a medicação, faz a punção e administra.
 
 Para jogar, abra o `index.html` num navegador. Para publicar, ative o GitHub Pages na branch `main`.
 
@@ -37,7 +37,7 @@ Para jogar, abra o `index.html` num navegador. Para publicar, ative o GitHub Pag
 
 ## Tecnologia
 
-Versão atual: **v8.11**. Se o motor do jogo não carregar (sem internet), a página mostra um aviso com botão para tentar de novo.
+Versão atual: **v9.0**. Se o motor do jogo não carregar (sem internet), a página mostra um aviso com botão para tentar de novo.
 
 
 Um único `index.html` com Phaser 3.80.1 (via CDN) e fontes do Google Fonts. Os sons são gerados com WebAudio, sem arquivos de áudio. O recorde e as preferências (som e tutorial visto) ficam no `localStorage` do navegador.

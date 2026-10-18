@@ -207,9 +207,9 @@ button{touch-action:manipulation}
   body.playing .top{margin-top:0;padding:10px 16px}
   body.playing .brand{display:flex} body.playing .brand b{display:inline;font-size:20px}
   .top .ghost{font-size:15px;padding:8px 14px} .pill{font-size:17px} .pill b{font-size:19px}
-  #gamewrap{display:grid;grid-template-columns:minmax(340px,440px) auto;grid-template-rows:auto auto minmax(0,1fr);column-gap:22px;row-gap:12px;justify-content:center;margin-top:12px}
+  #gamewrap{display:grid;grid-template-columns:minmax(300px,380px) auto;grid-template-rows:auto auto minmax(0,1fr);column-gap:22px;row-gap:12px;justify-content:center;margin-top:12px}
   #rxStrip{grid-column:1;grid-row:1} #objCard{grid-column:1;grid-row:2} .side{grid-column:1;grid-row:3}
-  .gstage{grid-column:2;grid-row:1/4;min-height:0;height:100%;aspect-ratio:720/1120;width:auto;max-width:calc(100vw - 520px)}
+  .gstage{grid-column:2;grid-row:1/4;min-height:0;height:auto;aspect-ratio:var(--ar,720/1120);width:min(calc(100vw - 470px),calc((100dvh - 100px) * var(--arn,.643)));align-self:center}
   .rxs{padding:12px 14px;align-items:flex-start}
   .rxs .rxic{width:42px;height:42px;font-size:19px}
   .rxs .rxp{font-size:17px;white-space:normal}
@@ -219,12 +219,14 @@ button{touch-action:manipulation}
   .obj .ph{font-size:13.5px} .obj .tt{font-size:24px} .obj .how{font-size:16.5px;line-height:1.4}
   .obj .rbtn{display:none}
   .chip{font-size:15px;padding:4px 11px}
-  .side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;background:var(--surface);border-radius:14px;padding:14px 16px;box-shadow:0 3px 0 var(--line)}
+  .side{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;align-self:start;max-height:100%}
+  .side .card{background:var(--surface);border-radius:14px;padding:14px 16px;box-shadow:0 3px 0 var(--line)}
+  .side .reg{margin:6px 0 0;padding:0;list-style:none} .side .reg li{display:flex;gap:8px;align-items:baseline;font-weight:700;font-size:15px;padding:3px 0} .side .reg li::before{content:'✓';color:var(--ok);font-weight:800}
   .side h4{margin:0;font-family:var(--f-display);font-size:18px;font-weight:800}
   .side .stp{font-size:15.5px;padding:5px 0} .side .stp i{width:28px;height:28px;font-size:15px}
   .side .stp small{font-size:14px}
   .side .fase{font-size:13px;margin:10px 0 2px}
-  .side .keys{font-size:15px;color:var(--muted);line-height:1.5;border-top:2px solid var(--surface-2);padding-top:10px;margin-top:auto}
+  .side .keys{font-size:15px;color:var(--muted);line-height:1.5}
   .side .keys b{color:var(--ink)}
   .side kbd{font-family:var(--f-mono);font-size:13px;background:var(--surface-2);border-radius:6px;padding:1px 6px;box-shadow:0 2px 0 var(--line);color:var(--ink)}
   .gt{font-size:17px;padding:10px 16px}
@@ -649,7 +651,7 @@ function stepFX(s){const tr=LEVEL==='treino';sfx('step');buzz(12);
     C.setScale(.3);s.tweens.add({targets:C,scale:1,duration:220,ease:'Back.Out'});s.tweens.add({targets:C,alpha:0,y:p.y-34,delay:420,duration:360,onComplete:()=>C.destroy()});}catch(e){}}
 /* no leito do soro os avisos ficam abaixo das abas Braço/Suporte */
 function placeToasts(){try{const box=$('#gToast'),sc=GAME&&GAME.scene.getScenes(true).find(x=>x.scene.key!=='Boot'),stg=document.querySelector('.gstage');if(!box||!stg)return;
-  if(sc&&sc.scene.key==='BedS'&&!sc.isEV){const W0=stg.clientWidth,H0=stg.clientHeight,k=Math.min(W0/GW,H0/GH),top=(H0-GH*k)/2;box.style.top=Math.round(top+92*k)+'px';}else box.style.top='8px';}catch(e){}}
+  if(sc&&sc.scene.key==='BedS'&&!sc.isEV&&!sc.wide){const W0=stg.clientWidth,H0=stg.clientHeight,k=Math.min(W0/GW,H0/GH),top=(H0-GH*k)/2;box.style.top=Math.round(top+92*k)+'px';}else box.style.top='8px';}catch(e){}}
 function toast(msg,kind='info'){const box=$('#gToast');while(box.children.length>=2)box.firstChild.remove();
   placeToasts();
   const d=document.createElement('div');d.className='gt '+kind;const ic={ok:'✓',warn:'!',bad:'✕'}[kind];
@@ -722,6 +724,12 @@ function handPos(s){const p=s.input.activePointer;if(!p||(!p.x&&!p.y))return {x:
 
 /* ================= VERSÃO MOBILE (retrato) ================= */
 const GW=720, GH=1120, DRAWER_Y=900;
+/* computador (tela larga, deitada): as cenas que dá para abrir lado a lado usam um canvas largo */
+const WIDE_Q='(min-width:1000px) and (min-height:600px) and (orientation:landscape)';
+const isWide=()=>{try{return matchMedia(WIDE_Q).matches;}catch(e){return false;}};
+function setW(scene,w,h=GH){if(!GAME)return;if(GAME.scale.width!==w||GAME.scale.height!==h)GAME.scale.setGameSize(w,h);
+  scene.cameras.main.setSize(w,h);const st=document.querySelector('.gstage');if(st){st.style.setProperty('--ar',`${w}/${h}`);st.style.setProperty('--arn',String(w/h));}
+  requestAnimationFrame(()=>{if(GAME)GAME.scale.refresh();placeToasts();});}
 let LEVEL='treino',HINT_UNTIL=0;
 const hlOn=()=>LEVEL==='treino'||performance.now()<HINT_UNTIL;
 /* tamanho da bolsa conforme o volume (100 → 1000 ml) */
@@ -798,13 +806,16 @@ class Guide{
     $('#shx').onclick=()=>{sh.hidden=true;};sh.onclick=e=>{if(e.target===sh)sh.hidden=true;};}
 }
 /* painel lateral do computador: roteiro sempre aberto (Treino) e atalhos de teclado */
-const KEYS_HTML=`<div class="keys"><h4>No computador</h4>Clique no material e depois no destino, ou arraste com o mouse. Para apertar, esfregar ou chacoalhar, segure o botão e mova.<br><kbd>Esc</kbd> solta o que está na mão · <kbd>1</kbd> <kbd>2</kbd> braço / suporte · <kbd>T</kbd> tabela · <kbd>P</kbd> prescrição</div>`;
+const KEYS_HTML=`<div class="card keys"><h4>No computador</h4>Clique no material e depois no destino, ou arraste com o mouse. Para apertar, esfregar ou chacoalhar, segure o botão e mova.<br><kbd>Esc</kbd> solta o que está na mão · <kbd>T</kbd> tabela · <kbd>P</kbd> prescrição</div>`;
 function sideRender(G){const el=$('#side');if(!el)return;
-  if(!G||LEVEL!=='treino'){el.innerHTML=(G&&LEVEL==='pratica'?`<h4>Prática</h4><p class="unit" style="margin:0">Só a fase aparece. A dica custa 2 pontos.</p>`:G?`<h4>Prova</h4><p class="unit" style="margin:0">Sem roteiro: faça como no plantão.</p>`:'')+KEYS_HTML;return;}
-  let html='<h4>Roteiro</h4><div>',last='';
+  if(!G){el.innerHTML=`<div class="card"><h4>Conferência</h4><p class="unit" style="margin:4px 0 0">Rosto, nome, data de nascimento e alergias: tudo precisa bater com a ficha e a prescrição.</p></div>`+KEYS_HTML;return;}
+  if(LEVEL!=='treino'){/* prática e prova: só o registro do que já foi feito (não revela o próximo passo) */
+    const done=G.steps.filter(x=>G.done.has(x.id));
+    el.innerHTML=`<div class="card"><h4>Registro${LEVEL==='prova'?' · prova':''}</h4>${done.length?`<ul class="reg">${done.map(x=>`<li>${x.short||x.t}</li>`).join('')}</ul>`:'<p class="unit" style="margin:4px 0 0">Nada feito ainda nesta etapa.</p>'}</div>`+KEYS_HTML;return;}
+  let html='<div class="card"><h4>Roteiro</h4><div>',last='';
   G.steps.forEach((x,i)=>{if(x.f!==last){html+=`<div class="fase">${FASES[x.f]}</div>`;last=x.f;}
     const st=G.done.has(x.id)?'done':G.isReady(x)?'now':'';html+=`<div class="stp ${st}"><i>${G.done.has(x.id)?'✓':i+1}</i><div>${x.t}</div></div>`;});
-  el.innerHTML=html+'</div>'+KEYS_HTML;const now=el.querySelector('.stp.now');if(now&&el.scrollHeight>el.clientHeight)now.scrollIntoView({block:'center'});}
+  el.innerHTML=html+'</div></div>'+KEYS_HTML;const now=el.querySelector('.stp.now');if(now&&el.scrollHeight>el.clientHeight)now.scrollIntoView({block:'center'});}
 function rxStrip(c){$('#rxStrip').innerHTML=`<span class="rxic">Rx</span><span class="rxt"><div class="rxp">${c.p.n} · Leito ${c.leito} · ${c.hora}</div><div class="rxl">${rxLine(c)}</div></span><span class="more">›</span>`;$('#rxStrip').onclick=()=>showRx(c);}
 function rxHTML(c){return `<div class="rx"><h4>Prescrição médica</h4><dl><dt>Paciente</dt><dd>${c.p.n}</dd><dt>Nasc.</dt><dd>${c.p.nasc} (${c.p.idade} anos)</dd><dt>Leito</dt><dd>${c.leito}</dd><dt>Horário</dt><dd>${c.hora}</dd><dt>Motivo</dt><dd>${c.queixa}</dd></dl><div class="item">${rxLine(c)}</div></div>`;}
 function showRx(c){modal(`<div class="mhead"><h2>Prescrição</h2><button class="ghost" id="mx">Fechar</button></div>${rxHTML(c)}`);$('#mx').onclick=closeM;}
@@ -843,8 +854,9 @@ function makeDrawer(s,items,onTap){
 class Check extends Phaser.Scene{
   constructor(){super('Check');}
   create(d){const s=this,c=this.c=d.c;this.R=d.R;this.done=false;
-    const p=c.p,t=PELE[p.pele];
-    sideRender(null);$('#objCard').innerHTML=`<div class="num">1</div><div class="txt"><div class="ph">Conferência</div><div class="tt">O paciente confere com a ficha?</div><div class="how">Compare <b>paciente e pulseira</b> (em cima) com <b>a ficha</b> (embaixo): rosto, nome, nascimento — e alergias × prescrição.</div></div>`;
+    const p=c.p,bp=c.issue==='outro'?c.other:p,t=PELE[bp.pele],alW=c.issue==='outro'?bp.alergia:c.alergiaW;/* bp = quem está de fato no leito */
+    const W=this.wide=isWide();setW(this,W?1440:GW,W?640:GH);
+    sideRender(null);$('#objCard').innerHTML=`<div class="num">1</div><div class="txt"><div class="ph">Conferência</div><div class="tt">O paciente confere com a ficha?</div><div class="how">Compare <b>paciente e pulseira</b> (${W?'à esquerda':'em cima'}) com <b>a ficha</b> (${W?'à direita':'embaixo'}): rosto, nome, nascimento — e alergias × prescrição.</div></div>`;
     svgTex(this,'bedTop',ART.bedTop()).then(()=>{
       const PC='#0E4A4F',FC='#E8962A';
       /* ===== PAINEL 1: O PACIENTE (quem está no leito) ===== */
@@ -852,22 +864,23 @@ class Check extends Phaser.Scene{
       s.add.image(360,264,'bedTop').setScale(.8);
       const ph=s.add.graphics().setDepth(4);ph.fillStyle(0x0E4A4F,1);ph.fillRoundedRect(8,6,704,58,{tl:22,tr:22,bl:0,br:0});
       T(s,32,35,'1 · O PACIENTE',28,'#fff',{ox:0,display:true}).setDepth(5);T(s,690,35,'quem está no leito',23,'#BFE3DD',{ox:1,w:'700'}).setDepth(5);
-      const f=drawFace(s,256,212,p,78);f.setDepth(5);
+      const f=drawFace(s,256,212,bp,78);f.setDepth(5);
       // braço sobre o lençol com a pulseira
       const ag=s.add.graphics().setDepth(6);ag.fillStyle(HEX(t.mid),1);ag.lineStyle(3,HEX(t.line),1);ag.fillRoundedRect(340,330,270,58,29);ag.strokeRoundedRect(340,330,270,58,29);
-      ag.fillStyle(0xffffff,1);ag.fillRoundedRect(520,324,30,70,8);ag.fillStyle(c.alergiaW?0xD9403A:0x2D7FD3,1);ag.fillRoundedRect(520,324,30,14,6);
+      ag.fillStyle(0xffffff,1);ag.fillRoundedRect(520,324,30,70,8);ag.fillStyle(alW?0xD9403A:0x2D7FD3,1);ag.fillRoundedRect(520,324,30,14,6);
       // lupa: da pulseira no braço para a pulseira ampliada
       ag.lineStyle(4,0x0E4A4F,.55);ag.lineBetween(535,396,535,486);ag.fillStyle(0x0E4A4F,.55);ag.fillTriangle(523,474,547,474,535,490);
       T(s,520,440,'pulseira ampliada',23,'#3B5A60',{ox:1,w:'700'}).setBackgroundColor('#ffffffcc').setPadding(6,2,6,2).setDepth(6);
       // pulseira ampliada
-      const nomeW=c.issue==='nome'?p.alt:p.n, nascW=c.issue==='nasc'?c.nascAlt:p.nasc;
+      const nomeW=bp.n, nascW=bp.nasc;
       const pg=s.add.graphics().setDepth(6);pg.fillStyle(0xffffff,1);pg.fillRoundedRect(24,494,672,118,40);pg.lineStyle(3,0x9FB1BB,1);pg.strokeRoundedRect(24,494,672,118,40);
       pg.fillStyle(0x2D7FD3,1);pg.fillRoundedRect(24,494,36,118,{tl:40,bl:40,tr:0,br:0});pg.fillRoundedRect(660,494,36,118,{tl:0,bl:0,tr:40,br:40});
       T(s,76,522,'NOME',20,'#557178',{ox:0}).setDepth(7);fitW(T(s,160,522,nomeW,31,'#0F3238',{ox:0}),490).setDepth(7);
       T(s,76,566,'NASC.',20,'#557178',{ox:0}).setDepth(7);T(s,160,566,nascW,29,'#0F3238',{ox:0,w:'700'}).setDepth(7);
-      const al=c.alergiaW||'Nega alergias';fitW(T(s,646,592,al==='Nega alergias'?al:'ALERGIA: '+al.toUpperCase(),22,'#fff',{ox:1}),300).setBackgroundColor(al==='Nega alergias'?'#1E9A55':'#D9403A').setPadding(10,4,10,4).setDepth(7);
+      const al=alW||'Nega alergias';fitW(T(s,646,592,al==='Nega alergias'?al:'ALERGIA: '+al.toUpperCase(),22,'#fff',{ox:1}),300).setBackgroundColor(al==='Nega alergias'?'#1E9A55':'#D9403A').setPadding(10,4,10,4).setDepth(7);
       const pf=s.add.graphics().setDepth(8);pf.lineStyle(6,0x0E4A4F,1);pf.strokeRoundedRect(8,6,704,618,22);
       /* ===== entre os painéis ===== */
+      const n0=s.children.list.length;
       T(s,360,642,'⇅  compare  ⇅',22,'#0F3238',{display:true}).setBackgroundColor('#FFC43D').setPadding(16,2,16,2).setDepth(9);
       /* ===== PAINEL 2: A FICHA (o que está registrado) ===== */
       const cg=s.add.graphics();cg.fillStyle(0xFFFDF4,1);cg.fillRoundedRect(8,660,704,318,22);
@@ -890,12 +903,15 @@ class Check extends Phaser.Scene{
       const b1=button(s,190,1050,'NÃO CONFERE',()=>this.decide(false),{w:320,h:88,color:0xD9403A,dark:0x8E2420,size:30});
       const b2=button(s,530,1050,'CONFERE',()=>this.decide(true),{w:320,h:88,color:0x1E9A55,dark:0x12693A,size:30});
       this.btns=[b1,b2];
+      /* tela larga: a ficha e os botões vão para a direita do paciente */
+      if(W)s.children.list.slice(n0).forEach((o,i)=>{if(i===0){o.setText('⇐  compare com o leito  ⇐');o.setPosition(1080,384);return;}
+        if(o===b1||o===b2){o.x+=720;o.y=560;return;}o.x+=720;o.y-=654;});
     });
   }
   decide(ok){if(this.done)return;this.done=true;const c=this.c,R=this.R,s=this;sfx('stamp');buzz(25);
-    const st=T(s,360,780,ok?'CONFERE':'NÃO CONFERE',64,ok?'#1E9A55':'#D9403A',{display:true}).setDepth(60).setAngle(-12).setScale(2.4).setAlpha(0);
+    const st=T(s,this.wide?1080:360,this.wide?190:780,ok?'CONFERE':'NÃO CONFERE',64,ok?'#1E9A55':'#D9403A',{display:true}).setDepth(60).setAngle(-12).setScale(2.4).setAlpha(0);
     s.tweens.add({targets:st,scale:1,alpha:.9,duration:220,ease:'Back.Out'});
-    const motivo={nome:`O nome na pulseira ("${c.p.alt}") é diferente do prontuário ("${c.p.n}").`,nasc:`A data de nascimento da pulseira (${c.nascAlt}) não bate com o prontuário (${c.p.nasc}).`,foto:'A foto do prontuário não é do paciente que está no leito.',alergia:`O paciente é alérgico a ${c.alergiaW}, e a prescrição é de ${c.d?nm(c.d):''}${c.key&&ALERG_POR[c.key]?` (${ALERG_POR[c.key]})`:''}.`}[c.issue];
+    const motivo={outro:c.other?`No leito está ${c.other.n} (nasc. ${c.other.nasc}), mas a ficha e a prescrição são de ${c.p.n} (nasc. ${c.p.nasc}): é outro paciente.`:'',alergia:`O paciente é alérgico a ${c.alergiaW}, e a prescrição é de ${c.d?nm(c.d):''}${c.key&&ALERG_POR[c.key]?` (${ALERG_POR[c.key]})`:''}.`}[c.issue];
     if(!!c.issue!==ok)s.time.delayedCall(260,()=>{sfx(c.issue?'win':'ok');flash('ok');});
     s.time.delayedCall(900,()=>{
       if(c.issue&&!ok){R.notes.push({ok:true,t:'Correto: '+motivo+' Medicação suspensa, enfermeiro comunicado.',pts:0});endCase();}
@@ -910,13 +926,13 @@ class Check extends Phaser.Scene{
 /* ---------- CENA 1: sala de preparo (soroterapia) ---------- */
 class PrepS extends Phaser.Scene{
   constructor(){super('PrepS');}
-  create(d){const s=this,c=this.c=d.c;this.R=d.R;this.tray=[];
-    const bg=s.add.graphics();bg.fillStyle(0xE6F6F3,1);bg.fillRect(0,0,GW,GH);
+  create(d){const s=this,c=this.c=d.c;this.R=d.R;this.tray=[];const W=this.wide=isWide();setW(this,W?1440:GW,W?640:GH);
+    const bg=s.add.graphics();bg.fillStyle(0xE6F6F3,1);bg.fillRect(0,0,W?1440:GW,GH);
     bg.fillStyle(0xffffff,.55);bg.fillRoundedRect(20,40,680,330,22);bg.fillRoundedRect(20,400,680,200,22);
     bg.fillStyle(0x9FB1BB,1);bg.fillRect(20,370,680,14);bg.fillRect(20,600,680,14);
-    bg.fillStyle(0xC9D6DE,1);bg.fillRect(0,640,GW,GH-640);bg.fillStyle(0xffffff,.8);bg.fillRect(0,640,GW,8);
+    if(W){bg.fillStyle(0xC9D6DE,1);bg.fillRect(730,0,710,640);bg.fillStyle(0xffffff,.8);bg.fillRect(730,0,8,640);}else{bg.fillStyle(0xC9D6DE,1);bg.fillRect(0,640,GW,GH-640);bg.fillStyle(0xffffff,.8);bg.fillRect(0,640,GW,8);}
     T(s,360,62,'SOLUÇÕES',26,'#557178');T(s,360,422,'EQUIPOS',26,'#557178');
-    this.add.image(360,860,'tray').setScale(1.08,1.5);T(s,360,724,'BANDEJA',26,'#8EA3A8');
+    this.add.image(W?1085:360,W?320:860,'tray').setScale(W?.95:1.08,1.5);T(s,W?1085:360,W?62:724,'BANDEJA',26,'#8EA3A8');
     this.guide=new Guide(this,[['prep','sol','Separe a solução prescrita',`Confira na prescrição do topo e toque na bolsa certa.`,null,{g:'pegar',short:`${c.soro.sol} ${c.soro.vol} ml`}],['prep','eq','Separe o equipo',`Toque no equipo indicado na prescrição (macro ou microgotas).`,null,{g:'pegar',short:`Equipo ${c.soro.eq==='macro'?'macrogotas':'microgotas'}`}],['prep','levar','Leve a bandeja ao leito','Toque em Levar ao leito.']]);
     let sols=[[c.soro.sol,c.soro.vol]];shuffle(SOL_POOL).forEach(a=>{if(sols.length<4&&!sols.some(b=>b[0]===a[0]&&b[1]===a[1]))sols.push(a);});sols=shuffle(sols);
     this.srcs=[];
@@ -924,8 +940,8 @@ class PrepS extends Phaser.Scene{
     [false,true].forEach((mi,i)=>{const x=220+i*280,y=510;const o=s.add.container(x,y-5,[s.add.image(0,0,mi?'equipoMi':'equipo').setScale(1.1),T(s,0,74,mi?'Microgotas':'Macrogotas',25,'#0F3238',{display:true})]).setSize(150,160);o.kind='eq';o.micro=mi;this.srcs.push(o);});
     this.input.dragDistanceThreshold=12;
     this.srcs.forEach(o=>{o.setInteractive({useHandCursor:true});o.home={x:o.x,y:o.y};
-      dragify(this,o,()=>this.toggle(o),p=>{const toTray=p.y>640;if(toTray!==!!o.onTray)this.toggle(o);else if(o.onTray)this.layout();else this.tweens.add({targets:o,x:o.home.x,y:o.home.y,duration:240,ease:'Back.Out'});return true;});});
-    this.go=button(s,360,1060,'Levar ao leito ▶',()=>{if(!this.guide.can('levar'))return;this.finish();},{w:420,h:80,size:28});
+      dragify(this,o,()=>this.toggle(o),p=>{const toTray=this.wide?p.x>730:p.y>640;if(toTray!==!!o.onTray)this.toggle(o);else if(o.onTray)this.layout();else this.tweens.add({targets:o,x:o.home.x,y:o.home.y,duration:240,ease:'Back.Out'});return true;});});
+    this.go=button(s,W?1085:360,W?585:1060,'Levar ao leito ▶',()=>{if(!this.guide.can('levar'))return;this.finish();},{w:420,h:80,size:28});
     this.hl=s.add.graphics().setDepth(70);
   }
   bagC(sol,vol,x,y){const sc=BAG_SC[vol]||1,dy=90-90*sc;/* base de todas as bolsas na mesma linha: a de 1000 ml fica bem maior que a de 100 ml */
@@ -940,9 +956,9 @@ class PrepS extends Phaser.Scene{
     o.onTray=true;this.tray.push(o);this.layout();
     if(LEVEL==='treino'&&!ok){toast(wrongMsg,'warn');this.guide.done.delete(step);this.guide.render();return;}
     this.guide.complete(step);}
-  layout(){this.tray.forEach((o,i)=>this.tweens.add({targets:o,x:240+i*240,y:860,duration:280,ease:'Back.Out'}));}
+  layout(){this.tray.forEach((o,i)=>this.tweens.add({targets:o,x:this.wide?965+i*240:240+i*240,y:this.wide?300:860,duration:280,ease:'Back.Out'}));}
   update(t){const g=this.hl;g.clear();if(!hlOn()||!this.guide)return;const a=.4+.4*Math.sin(t/180);g.lineStyle(6,0xFFC43D,a);
-    this.guide.ready().forEach(c=>{if(c.id==='sol')g.strokeRoundedRect(28,80,664,280,20);if(c.id==='eq')g.strokeRoundedRect(28,440,664,155,20);if(c.id==='levar')g.strokeRoundedRect(145,1015,430,95,20);});}
+    this.guide.ready().forEach(c=>{if(c.id==='sol')g.strokeRoundedRect(28,80,664,280,20);if(c.id==='eq')g.strokeRoundedRect(28,440,664,155,20);if(c.id==='levar')g.strokeRoundedRect(this.wide?870:145,this.wide?540:1015,430,95,20);});}
   finish(){const c=this.c,R=this.R;const bag=this.tray.find(o=>o.kind==='bag'),eq=this.tray.find(o=>o.kind==='eq');
     if(LEVEL==='treino'){const bOk=bag&&bag.sol===c.soro.sol&&bag.vol===c.soro.vol,eOk=eq&&eq.micro===(c.soro.eq==='micro');
       if(!bOk||!eOk){toast(!bag||!eq?'Falta material na bandeja.':'Há um item errado na bandeja: devolva e pegue o prescrito.','warn');return;}}
@@ -999,7 +1015,8 @@ class BedS extends Phaser.Scene{
     // tubo indo para o braço
     this.tubeArm=this.add.graphics().setDepth(9);
     // abas
-    if(!this.isEV)this.tabs=['braco','suporte'].map((v,i)=>{const b=button(s,85+i*160,46,v==='braco'?'Braço':'Suporte',()=>this.goView(v),{w:150,h:62,size:28,color:0x557178,dark:0x3A4E53});b.setScrollFactor(0).setDepth(85);return b;});
+    this.wide=isWide()&&!this.isEV;setW(this,this.wide?1440:GW);
+    if(!this.isEV&&!this.wide)this.tabs=['braco','suporte'].map((v,i)=>{const b=button(s,85+i*160,46,v==='braco'?'Braço':'Suporte',()=>this.goView(v),{w:150,h:62,size:28,color:0x557178,dark:0x3A4E53});b.setScrollFactor(0).setDepth(85);return b;});
     // gaveta
     const BASE_IT=[{key:'luvas',label:'Luvas',tex:'gloves'},{key:'garrote',label:'Garrote',tex:'garroteRoll'},{key:'alcool',label:'Álcool',tex:'alcool'},
       {key:'cateter',label:'Cateter',tex:'cat20',rot:-Math.PI/4,fit:.6},{key:'extensor',label:'Extensor',tex:'extensor'},{key:'curativo',label:'Curativo',tex:'curativo'},
@@ -1038,7 +1055,7 @@ class BedS extends Phaser.Scene{
     else if(this._dragging&&p.isDown)o={key:'grab',x:p.x,y:p.y,gloved};
     handUpdate(this,o);}
   wp(p){return this.cameras.main.getWorldPoint(p.x,p.y);}
-  goView(v){if(this.view===v)return;this.view=v;this.tweens.add({targets:this.cameras.main,scrollX:v==='braco'?0:720,duration:420,ease:'Cubic.InOut'});}
+  goView(v){if(this.view===v)return;if(this.wide){this.view=v;return;}this.view=v;this.tweens.add({targets:this.cameras.main,scrollX:v==='braco'?0:720,duration:420,ease:'Cubic.InOut'});}
   setSel(k,label){if(this.sel&&this.drawer[this.sel])this.drawer[this.sel].draw(false);if(this.sel&&this.sel.startsWith('cat')&&this.drawer.cateter)this.drawer.cateter.draw(false);this.sel=k;if(k&&this.drawer[k])this.drawer[k].draw(true);
     {const g=k&&k.startsWith('cat')?+k.slice(3):0;this.selLabel.setBackgroundColor(g?CATS[g].cor:'#FFC43D').setColor(g&&g!==24?'#ffffff':'#0F3238');if(g&&this.drawer.cateter)this.drawer.cateter.draw(true);}
     this.selLabel.setText(k?`Na mão: ${label} · toque de novo para soltar`:'').setVisible(!!k);}
@@ -1061,8 +1078,8 @@ class BedS extends Phaser.Scene{
     if(k==='luvas'||k==='equipo'){this.pick(k);return;}
     if(k==='cateter'){this.pendCath=p.y<DRAWER_Y?w:null;this.catPicker();return;}
     if(p.y>=DRAWER_Y)return;this.worldTap(w.x,w.y);}
-  catPicker(){const s=this;$('#gToast').innerHTML='';const C=s.add.container(0,0).setScrollFactor(0).setDepth(200);
-    C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.6).setInteractive());
+  catPicker(){const s=this;$('#gToast').innerHTML='';const C=s.add.container(s.wide?360:0,0).setScrollFactor(0).setDepth(200);
+    C.add(s.add.rectangle(360,560,GW*4,GH,0x0A282C,.6).setInteractive());
     const g=s.add.graphics();g.fillStyle(0xffffff,1);g.fillRoundedRect(30,150,660,760,24);C.add(g);
     C.add(T(s,360,200,'Escolha o cateter',34,'#0F3238',{display:true}));
     C.add(T(s,360,244,`${this.c.p.idade} anos${this.c.p.fragil?' · veias frágeis':''} · ${{ev_ser:'medicação EV',ev_bol:'medicação em bolsa',soro:'soroterapia'}[this.c.tipo]}`,20,'#557178',{w:'700'}));
@@ -1276,7 +1293,7 @@ class BedS extends Phaser.Scene{
       if(!this._rlab){this._rlab=T(this,sx+130,700,'rolete',28,'#3B5A60');this._clab=T(this,sx+130,0,'câmara',28,'#3B5A60');this._slab=T(this,sx+140,0,'ponta do\nequipo',26,'#3B5A60');}
       this._clab.y=(chT+chB)/2;{const act=B.spiked&&!this.guide.done.has('camara');this._clab.setText(act?(B.ch<.45?'aperte\na câmara':B.ch<=.8?'no ponto:\nsolte':'cheia\ndemais'):'câmara').setColor(act&&B.ch>=.45&&B.ch<=.8?'#1E9A55':act&&B.ch>.8?'#D9403A':'#3B5A60');}this._slab.y=tip+20;this._slab.setVisible(!B.spiked);
       // gotas
-      if(B.conn&&B.rate>0){this.dropT=(this.dropT||0)+dt;if(this.dropT>60000/B.rate){this.dropT=0;if(this.view==='suporte')snd('drip',70);const d=this.add.circle(sx,chT+12,B.micro?5:8,0x2D7FD3).setDepth(11);this.tweens.add({targets:d,y:chB-14-142*B.ch,duration:300,ease:'Quad.In',onComplete:()=>d.destroy()});}}
+      if(B.conn&&B.rate>0){this.dropT=(this.dropT||0)+dt;if(this.dropT>60000/B.rate){this.dropT=0;if(this.view==='suporte'||this.wide)snd('drip',70);const d=this.add.circle(sx,chT+12,B.micro?5:8,0x2D7FD3).setDepth(11);this.tweens.add({targets:d,y:chB-14-142*B.ch,duration:300,ease:'Quad.In',onComplete:()=>d.destroy()});}}
       if(this.gauge){const pos=Math.min(1,B.rate/this.gMax);this.gMark.x=this.gx+pos*this.gw;this.gNum.setText(`${B.rate} ${B.micro?'microgotas':'gotas'}/min`);}
     }
     // destaques do treino
@@ -1314,8 +1331,8 @@ const round1=n=>Math.round(n*10)/10;
 function aspirePanelP(s,{cap,base,liq,title,maxMl,hint},cb){
   $('#gToast').innerHTML='';
   const step={3:.1,5:.2,10:.5,20:1}[cap];
-  const C=s.add.container(0,0).setDepth(300).setScrollFactor(0);
-  C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.65).setInteractive());
+  const C=s.add.container(s.wide?360:0,0).setDepth(300).setScrollFactor(0);/* tela larga: painel no centro */
+  C.add(s.add.rectangle(360,560,GW*4,GH,0x0A282C,.65).setInteractive());
   const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(16,170,688,760,28);C.add(pg);
   C.add(T(s,360,226,title,34,'#0F3238',{display:true,wrap:640}));
   C.add(T(s,360,290,hint||`Seringa de ${cap} ml. Arraste o círculo azul para a direita para puxar o êmbolo.`,21,'#557178',{w:'700',wrap:620}));
@@ -1348,8 +1365,8 @@ function aspirePanelP(s,{cap,base,liq,title,maxMl,hint},cb){
 const mmss=sec=>{sec=Math.round(sec);return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;};
 function injectPanelP(s,{cap,vol,p,name,tmin,liq,title,target},cb){
   $('#gToast').innerHTML='';
-  const C=s.add.container(0,0).setDepth(300).setScrollFactor(0);
-  C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.65).setInteractive());
+  const C=s.add.container(s.wide?360:0,0).setDepth(300).setScrollFactor(0);/* tela larga: painel no centro */
+  C.add(s.add.rectangle(360,560,GW*4,GH,0x0A282C,.65).setInteractive());
   const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(16,40,688,1050,28);C.add(pg);
   C.add(T(s,360,96,title||'Injete devagar',40,'#0F3238',{display:true}));
   C.add(T(s,360,146,`${name} · ${fmt(round1(vol))} ml`,24,'#557178',{w:'700'}));
@@ -1406,7 +1423,7 @@ const recIM=c=>(c.p.peso>=85||c.key==='benzetacil')?'30x8':'30x7';
 const okIM=(c,k)=>k==='30x8'||k==='30x7'||k==='25x7';
 class PrepEV extends Phaser.Scene{
   constructor(){super('PrepEV');}
-  create(d){const s=this,c=this.c=d.c;this.R=d.R;
+  create(d){const s=this,c=this.c=d.c;this.R=d.R;setW(this,GW);
     const d0=c.d,M=this.mode=c.tipo,sp=c.spec;
     this.fr=d0.apres==='frasco';this.bol=M==='ev_bol';this.im=M==='im';
     this.dil=M==='ev_ser'&&sp.dil==='ABD';
@@ -1747,8 +1764,8 @@ function drawBody(g,p){const t=PELE[p.pele],sk=HEX(t.base),md=HEX(t.mid),ln=HEX(
   g.fillStyle(hair,1);g.fillEllipse(360,128,p.cab>=5?96:108,p.cabLongo?130:96);if(p.cabLongo)g.fillRoundedRect(316,140,88,70,20);}
 function imAnglePanelP(s,{needle,p},cb){
   $('#gToast').innerHTML='';
-  const C=s.add.container(0,0).setDepth(300).setScrollFactor(0);
-  C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.65).setInteractive());
+  const C=s.add.container(s.wide?360:0,0).setDepth(300).setScrollFactor(0);/* tela larga: painel no centro */
+  C.add(s.add.rectangle(360,560,GW*4,GH,0x0A282C,.65).setInteractive());
   const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(16,50,688,1020,28);C.add(pg);
   C.add(T(s,360,104,'Introduza a agulha',38,'#0F3238',{display:true}));
   C.add(T(s,360,152,'Gire a seringa até o ângulo certo e toque em Inserir.',21,'#557178',{w:'700',wrap:620}));
@@ -1781,7 +1798,7 @@ function imAnglePanelP(s,{needle,p},cb){
 }
 class BedIM extends Phaser.Scene{
   constructor(){super('BedIM');}
-  create(d){const s=this,c=this.c=d.c;this.R=d.R;const p=c.p;this.used=null;Object.assign(this,{hand:null,useHand:true,_ghostKey:null,_dragging:false,_cold:false});
+  create(d){const s=this,c=this.c=d.c;this.R=d.R;setW(this,GW);const p=c.p;this.used=null;Object.assign(this,{hand:null,useHand:true,_ghostKey:null,_dragging:false,_cold:false});
     this.st={gloved:false,site:null,rub:false,given:false,comp:false,disc:false};this.sel=null;
     const bg=s.add.graphics();bg.fillStyle(0xDDEBEF,1);bg.fillRect(0,0,GW,DRAWER_Y);bg.fillStyle(0xF4F8FB,1);bg.fillRoundedRect(150,40,420,850,40);
     const body=s.add.graphics();drawBody(body,p);
@@ -1883,8 +1900,8 @@ class BedIM extends Phaser.Scene{
 /* ---------- MINIGAME: punção (retrato) ---------- */
 function puncturePanelP(s,gauge,cb){
   $('#gToast').innerHTML='';
-  const C=s.add.container(0,0).setDepth(300).setScrollFactor(0);
-  C.add(s.add.rectangle(360,560,GW,GH,0x0A282C,.65).setInteractive());
+  const C=s.add.container(s.wide?360:0,0).setDepth(300).setScrollFactor(0);/* tela larga: painel no centro */
+  C.add(s.add.rectangle(360,560,GW*4,GH,0x0A282C,.65).setInteractive());
   const pg=s.add.graphics();pg.fillStyle(0xffffff,1);pg.fillRoundedRect(16,40,688,1050,28);C.add(pg);
   const ttl=T(s,360,96,'Punção venosa',40,'#0F3238',{display:true}),ins=T(s,360,150,'1. Ajuste o ângulo.  2. Segure o botão azul para avançar.  3. Solte quando o sangue aparecer na câmara.',21,'#557178',{w:'700',wrap:620});C.add([ttl,ins]);
   const K=1.25,ox=35,oy=210;C.add(s.add.image(ox,oy,'cross').setOrigin(0).setScale(K));
@@ -1900,7 +1917,7 @@ function puncturePanelP(s,gauge,cb){
   C.add(T(s,sx0,sy+50,'5°',18,'#557178'));C.add(T(s,sx0+sw,sy+50,'60°',18,'#557178'));
   const knob=s.add.circle(sx0+(ang-5)/55*sw,sy,30,0x2D7FD3).setStrokeStyle(6,0xffffff).setInteractive({hitArea:new Phaser.Geom.Circle(30,30,70),hitAreaCallback:Phaser.Geom.Circle.Contains,draggable:true,useHandCursor:true});C.add(knob);
   knob.on('drag',(p,x)=>{if(state!=='aim')return;x=Phaser.Math.Clamp(x,sx0,sx0+sw);knob.x=x;ang=Math.round(5+(x-sx0)/sw*55);angT.setText(`Ângulo: ${ang}°`);drawC();});
-  /* tocar ou arrastar em qualquer ponto da régua */{const tz=s.add.zone(sx0+sw/2,sy,sw+90,100).setInteractive();C.addAt(tz,C.getIndex(knob));tz.on('pointerdown',p=>knob.emit('drag',p,p.x));tz.on('pointermove',p=>{if(p.isDown)knob.emit('drag',p,p.x);});}
+  /* tocar ou arrastar em qualquer ponto da régua */{const tz=s.add.zone(sx0+sw/2,sy,sw+90,100).setInteractive();C.addAt(tz,C.getIndex(knob));tz.on('pointerdown',p=>knob.emit('drag',p,p.x-C.x));tz.on('pointermove',p=>{if(p.isDown)knob.emit('drag',p,p.x-C.x);});}
   const bev=button(s,360,770,up?'Bisel: para cima':'Bisel: para baixo',()=>{if(state!=='aim')return;up=!up;bev.setLabel(up?'Bisel: para cima':'Bisel: para baixo');drawC();},{w:340,h:64,color:0x557178,dark:0x3A4E53,size:24});C.add(bev);
   const go=button(s,360,900,'Segure para avançar',null,{w:520,h:120,color:0x2D7FD3,dark:0x1F5EA3,size:32});C.add(go);
   const tip=()=>{const a=ang*Math.PI/180;return{u:170+adv*Math.cos(a),v:70+adv*Math.sin(a)};},inV=t=>Math.hypot(t.u-308,t.v-127)<24;
@@ -1937,7 +1954,7 @@ function ensureGame(){if(READY)return READY;
   READY=(async()=>{try{await Promise.race([Promise.all([document.fonts.load('800 20px "Baloo 2"'),document.fonts.load('800 16px Nunito'),document.fonts.load('700 16px Nunito')]),new Promise(r=>setTimeout(r,2500))]);}catch(e){}
     await new Promise(res=>{BOOT=res;const cv=document.createElement('canvas'),gl=hiResGL(cv);if(gl)HIRES=RES;
       GAME=new Phaser.Game({...(gl?{type:Phaser.WEBGL,canvas:cv,context:gl}:{type:Phaser.AUTO}),parent:'game',width:GW,height:GH,backgroundColor:'#CDEAE5',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},input:{activePointers:2},scene:[Boot,Check,PrepS,BedS,PrepEV,BedEV,BedIM]});
-      if(gl){const hi=()=>{if(cv.width!==GW*RES){cv.width=GW*RES;cv.height=GH*RES;}if(GAME.renderer&&GAME.renderer.resize)GAME.renderer.resize(GW,GH);};hi();GAME.events.once('ready',hi);GAME.scale.on('resize',hi);}});
+      if(gl){const hi=()=>{const w=GAME.scale.width||GW,h=GAME.scale.height||GH;if(cv.width!==Math.round(w*RES)||cv.height!==Math.round(h*RES)){cv.width=Math.round(w*RES);cv.height=Math.round(h*RES);}if(GAME.renderer&&GAME.renderer.resize)GAME.renderer.resize(w,h);};hi();GAME.events.once('ready',hi);GAME.scale.on('resize',hi);}});
     /* o cartão de objetivo muda de altura a cada passo: reajusta o canvas no quadro seguinte para nada ficar cortado */
     {let q=0;const fit=()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;if(GAME)GAME.scale.refresh();placeToasts();clearTimeout(fit.t);fit.t=setTimeout(()=>{if(GAME)GAME.scale.refresh();placeToasts();},250);});};
      try{new ResizeObserver(fit).observe(document.querySelector('.gstage'));}catch(e){}
@@ -1963,15 +1980,18 @@ $('#protoBtn').onclick=openProto;
 $('#sndBtn').onclick=()=>setSound(!FX.on);$('#sndBtn').innerHTML=FX.on?ICON_SND.on:ICON_SND.off;$('#sndBtn').setAttribute('aria-pressed',String(FX.on));
 
 function setupIssue(c){
-  c.issue=null;c.alergiaW=null;c.photo={...c.p};c.nascAlt=null;
+  c.issue=null;c.alergiaW=null;c.photo={...c.p};c.other=null;
   const r=Math.random();
   /* divergências são raras (~12–15% dos casos), como no plantão */
-  if(r<.04)c.issue='nome';else if(r<.08){c.issue='nasc';const [d,m,y]=c.p.nasc.split('/');c.nascAlt=`${d}/${m}/${+y+(Math.random()<.5?1:-2)}`;}
-  else if(r<.12){c.issue='foto';const ph={...c.p};if(Math.random()<.5)ph.pele=(c.p.pele+2)%4;else{ph.cab=(c.p.cab+3)%7;ph.oculos=!c.p.oculos;ph.barba=!c.p.fem&&!c.p.barba;ph.cabLongo=c.p.fem?!c.p.cabLongo:false;}c.photo=ph;}
+  /* paciente errado = outra pessoa de verdade (outro nome, outra data, outra aparência), como acontece no plantão */
+  if(r<.12){c.issue='outro';c.other=otherPatient(c.p);}
   else if(r<.15&&c.d){c.issue='alergia';c.alergiaW=c.d.alergia||c.d.nome;}
   /* ~30% dos pacientes têm uma alergia que NÃO conflita com o prescrito: é preciso ler, não só ver a cor */
   if(!c.issue&&Math.random()<.3)c.alergiaW=pick(ALERG_OK);
   return c;}
+function otherPatient(p){for(let k=0;k<40;k++){const o=makePatient();const fn=x=>x.n.split(' ')[0];
+    if(fn(o)!==fn(p)&&o.n.split(' ').pop()!==p.n.split(' ').pop()&&Math.abs(o.idade-p.idade)>=8&&(o.pele!==p.pele||o.cab!==p.cab||o.fem!==p.fem)){o.alergia=Math.random()<.3?pick(ALERG_OK):null;return o;}}
+  const o=makePatient();o.alergia=null;return o;}
 const ALERG_OK=['Sulfa','Iodo','Frutos do mar','Picada de abelha','Poeira e ácaros'];
 const ALERG_POR={escopolamina:'a associação contém dipirona',amoxclav:'a amoxicilina é uma penicilina',benzetacil:'é uma penicilina'};
 async function playCase(c){
@@ -2039,7 +2059,7 @@ function home(){S.run++;CUR=null;$('#casePill').hidden=true;$('#ptsPill').hidden
     <div class="modes">${MODES.map(([k,ic,t,d])=>`<button class="mode ${MODE===k?'on':''}" data-m="${k}"><span class="ic">${ICON[ic]}</span><div><span class="tag">3 casos${k==='misto'?' · sorteados':''}</span><h3>${t}</h3><small>${d}</small><span class="bw" data-b="${k}">${bestTxt(k)}</span></div></button>`).join('')}</div>
     <button class="primary big" id="start">Começar plantão</button>
     <button class="linkbtn" id="howBtn">Como jogar</button>
-    <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem. <span class="ver">· v8.11</span></p>`);
+    <p class="foot">Conteúdo de preparo baseado na tabela da unidade. Valide com o enfermeiro responsável técnico e a farmácia antes do uso em sala. A prescrição médica e o protocolo institucional sempre prevalecem. <span class="ver">· v9.0</span></p>`);
   document.querySelectorAll('.lvl').forEach(b=>b.onclick=()=>{LEVEL=b.dataset.l;sfx('tap');document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.bw').forEach(x=>x.innerHTML=bestTxt(x.dataset.b));});
   document.querySelectorAll('.mode[data-m]').forEach(b=>b.onclick=()=>{MODE=b.dataset.m;sfx('tap');document.querySelectorAll('.mode[data-m]').forEach(x=>x.classList.toggle('on',x===b));});
   $('#howBtn').onclick=()=>howTo(null);
