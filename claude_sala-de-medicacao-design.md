@@ -1,4 +1,4 @@
-# Sala de Medicação — design (v9.0, mobile em retrato + layout próprio no PC)
+# Sala de Medicação — design (v9.1, mobile em retrato + layout próprio no PC)
 
 > **Estado (17/out/2026):** `claude/sala-de-medicacao-index.html` = **v8.8 (v8.7 polida + sons de procedimento)**, publicada no artifact "Sala de Medicação" (https://claude.ai/artifact/GXmqm8cxJfBWhuc4aT1a86). O GitHub `main` tem a v8.2 (`400078a`); a v8.8 aguarda upload manual do `index.html`. Link do Pages: https://viniciuspauli-create.github.io/sala-de-medicacao/
 
@@ -46,6 +46,10 @@ Público: técnico de enfermagem. Stack: Phaser 3.80.1 (2D), canvas 720×1120 em
   - PC em tela larga (fase 1): canvas por cena via `setW(scene,w,h)` (`GAME.scale.setGameSize` + `--ar/--arn` no `.gstage`; o Proxy WebGL acompanha o tamanho). Conferência 1440×640 (paciente à esquerda, ficha e botões à direita, deslocando os objetos criados depois de `n0`); preparo do soro 1440×640 (prateleiras à esquerda, bandeja à direita: `toTray=p.x>730`); leito do soro/bolsa 1440×1120 com braço e suporte lado a lado (`this.wide`, sem abas, `goView` só troca `view`). Painéis (cateter, punção, aspirar, injetar) centralizados com `container(s.wide?360:0)`; régua da punção usa `p.x-C.x`.
   - **Ainda em pé no PC:** sala de preparo EV/IM (`PrepEV`), leito EV seringa (`BedEV`) e IM (`BedIM`). Próxima fase.
   - Barra lateral em cartões: Treino mostra o roteiro; Prática e Prova mostram o **Registro** (só o que já foi feito); atalhos sem 1/2 (no PC o leito já mostra as duas vistas).
+- **v9.1 (feedback do Vini no celular):**
+  - Cartão do passo com altura fixa (122 px; 108 px em celular baixo): o canvas não muda de tamanho entre passos. Textos dos passos reescritos curtos (≤ ~55 caracteres; títulos encurtados); fase em uma linha (`1/17 · Fase`); prescrição do topo em no máximo 2 linhas. `fitCard()` reduz a fonte só como último recurso; grupos mostram só o que falta e, se não couber, "+N". Robô percorreu ~300 passos em 360×640 e 390×844: altura do cartão e do palco constantes, sem estouro.
+  - Régua do gotejamento sem o texto "prescrição" (fica só a marca amarela no Treino).
+  - Toque acidental: um objeto só recebe o "clique" se o toque começou nele (patch em `GameObject.emit`: `pointerup` exige o mesmo `downTime` do `pointerdown`). Corrige ângulo da punção → botão do bisel e todos os casos parecidos (arrastar e soltar sobre itens da gaveta, botões dos painéis de aspirar/injetar/ângulo IM, Confirmar do gotejamento, prateleiras).
 - Níveis: Treino (passo atual + destaque; grupos como lista; avisa ao pegar errado), Prática (só a fase; dica −2), Prova (sem roteiro).
 - Conferência estilo "Papers, Please". Divergências raras (~12% outro paciente + 3% alergia); ~30% com alergia que não conflita.
 

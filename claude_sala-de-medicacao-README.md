@@ -37,7 +37,7 @@ Para jogar, abra o `index.html` num navegador. Para publicar, ative o GitHub Pag
 
 ## Tecnologia
 
-Versão atual: **v9.0**. Se o motor do jogo não carregar (sem internet), a página mostra um aviso com botão para tentar de novo.
+Versão atual: **v9.1**. Se o motor do jogo não carregar (sem internet), a página mostra um aviso com botão para tentar de novo.
 
 
 Um único `index.html` com Phaser 3.80.1 (via CDN) e fontes do Google Fonts. Os sons são gerados com WebAudio, sem arquivos de áudio. O recorde e as preferências (som e tutorial visto) ficam no `localStorage` do navegador.
